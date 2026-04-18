@@ -57,8 +57,8 @@ function Index() {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
             Public record · Naija on the trail
           </div>
-          <h1 className="mt-5 font-display text-5xl font-bold tracking-tight text-white md:text-7xl">
-            Hold them to <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">their words.</span>
+          <h1 className="mt-5 font-display text-3xl font-bold tracking-tight text-white md:text-7xl">
+            Accountability  <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">archive</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base text-white/90 md:text-lg">
             A community archive of political statements posted on X/Twitter by

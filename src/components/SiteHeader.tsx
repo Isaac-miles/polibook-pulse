@@ -6,14 +6,14 @@ export function SiteHeader() {
       <div className="h-1 bg-[image:var(--gradient-flag)]" />
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="relative h-9 w-9 overflow-hidden rounded-lg shadow-[var(--shadow-elevated)]">
+          {/* <div className="relative h-9 w-9 overflow-hidden rounded-lg shadow-[var(--shadow-elevated)]">
             <div className="absolute inset-0 bg-[image:var(--gradient-flag)]" />
-          </div>
+          </div> */}
           <div className="leading-tight">
             <div className="font-display text-lg font-bold tracking-tight">Trail 🇳🇬</div>
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            {/* <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
               Accountability archive
-            </div>
+            </div> */}
           </div>
         </Link>
         <nav className="flex items-center gap-1 text-sm">
