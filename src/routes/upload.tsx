@@ -132,10 +132,10 @@ function UploadPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-foreground">
+        {/* <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-foreground">
           <strong className="text-amber-700">Heads up:</strong> data saves to your browser only.
           Use <em>Export JSON</em> to download and commit <code>src/data/users.json</code> for everyone to see.
-        </div>
+        </div> */}
 
         <div className="mt-6 space-y-6">
           <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
@@ -143,7 +143,7 @@ function UploadPage() {
             <div className="mt-2 flex gap-2">
               <Input
                 id="username"
-                placeholder="e.g. sample_politician"
+                placeholder="e.g. sample_user"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);

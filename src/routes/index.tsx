@@ -48,8 +48,7 @@ function Index() {
         <div
           className="absolute inset-0 opacity-[0.07]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
             backgroundSize: "24px 24px",
           }}
         />
@@ -76,7 +75,7 @@ function Index() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter username (e.g. sample_politician)"
+                placeholder="Enter username (e.g. sample_user)"
                 className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
               />
             </div>
@@ -91,7 +90,7 @@ function Index() {
         {!searched && (
           <div className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center backdrop-blur">
             <p className="text-sm text-muted-foreground">
-              Try searching <code className="rounded bg-secondary px-1.5 py-0.5 text-foreground">sample_politician</code> to see how a record looks.
+              Try searching <code className="rounded bg-secondary px-1.5 py-0.5 text-foreground">sample_user</code> to see how a record looks.
             </p>
           </div>
         )}

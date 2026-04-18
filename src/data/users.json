@@ -1,8 +1,8 @@
 {
   "users": [
     {
-      "username": "sample_politician",
-      "displayName": "Sample Politician",
+      "username": "sample_user",
+      "displayName": "Sample User",
       "firstName": "Jane",
       "lastName": "Doe",
       "party": "Independent",
