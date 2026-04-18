@@ -40,27 +40,38 @@ function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[image:var(--gradient-soft)]">
       <SiteHeader />
 
-      <section className="border-b border-border bg-[image:var(--gradient-hero)] text-primary-foreground">
-        <div className="mx-auto max-w-5xl px-4 py-16 md:py-24">
-          <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] opacity-80">
-            Public record · On the trail
-          </p>
-          <h1 className="font-display text-4xl font-bold tracking-tight md:text-6xl">
-            Hold them to <span className="opacity-80">their words.</span>
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="absolute inset-0 bg-[image:var(--gradient-hero)]" />
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div className="relative mx-auto max-w-5xl px-4 py-20 md:py-28">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white backdrop-blur">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+            Public record · Naija on the trail
+          </div>
+          <h1 className="mt-5 font-display text-5xl font-bold tracking-tight text-white md:text-7xl">
+            Hold them to <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">their words.</span>
           </h1>
-          <p className="mt-4 max-w-2xl text-base opacity-90 md:text-lg">
-            A community archive of political statements posted on X/Twitter.
-            Search any username to see what they actually said — with timestamps and sources.
+          <p className="mt-5 max-w-2xl text-base text-white/90 md:text-lg">
+            A community archive of political statements posted on X/Twitter by
+            Nigerian public figures. Search any username to see what they actually
+            said — with timestamps, screenshots, and sources.
           </p>
 
           <form
             onSubmit={handleSearch}
-            className="mt-8 flex flex-col gap-2 rounded-xl bg-card p-2 shadow-[var(--shadow-elevated)] sm:flex-row"
+            className="mt-10 flex flex-col gap-2 rounded-2xl bg-card p-2 shadow-[var(--shadow-elevated)] sm:flex-row"
           >
-            <div className="flex flex-1 items-center gap-2 px-3">
+            <div className="flex flex-1 items-center gap-2 px-4">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 value={query}
@@ -78,7 +89,7 @@ function Index() {
 
       <main className="mx-auto max-w-5xl px-4 py-12">
         {!searched && (
-          <div className="rounded-lg border border-dashed border-border bg-surface p-10 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center backdrop-blur">
             <p className="text-sm text-muted-foreground">
               Try searching <code className="rounded bg-secondary px-1.5 py-0.5 text-foreground">sample_politician</code> to see how a record looks.
             </p>
