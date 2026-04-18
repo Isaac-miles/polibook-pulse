@@ -44,6 +44,18 @@ function UploadPage() {
   const [tweetUrl, setTweetUrl] = useState("");
   const [tweetText, setTweetText] = useState("");
   const [postedAt, setPostedAt] = useState("");
+  const [screenshot, setScreenshot] = useState<string | undefined>(undefined);
+
+  const handleScreenshot = async (file: File | null) => {
+    if (!file) return setScreenshot(undefined);
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image too large (max 4MB while in local mode)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setScreenshot(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const handleCheck = () => {
     if (!username.trim()) {
@@ -83,6 +95,7 @@ function UploadPage() {
       url: tweetUrl,
       text: tweetText,
       postedAt: postedAt ? new Date(postedAt).toISOString() : undefined,
+      screenshot,
     });
 
     if (updated) {
@@ -90,6 +103,7 @@ function UploadPage() {
       setTweetUrl("");
       setTweetText("");
       setPostedAt("");
+      setScreenshot(undefined);
       toast.success("Tweet archived");
     }
   };
@@ -250,6 +264,28 @@ function UploadPage() {
                       onChange={(e) => setPostedAt(e.target.value)}
                       className="mt-1.5"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="screenshot">Screenshot (optional, max 4MB)</Label>
+                    <Input
+                      id="screenshot"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleScreenshot(e.target.files?.[0] ?? null)}
+                      className="mt-1.5 cursor-pointer"
+                    />
+                    {screenshot && (
+                      <div className="mt-3 overflow-hidden rounded-lg border border-border">
+                        <img src={screenshot} alt="Preview" className="max-h-64 w-full object-contain bg-muted" />
+                        <button
+                          type="button"
+                          onClick={() => setScreenshot(undefined)}
+                          className="block w-full border-t border-border bg-muted px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"
+                        >
+                          Remove screenshot
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
