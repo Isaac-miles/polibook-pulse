@@ -4,6 +4,7 @@ export type Tweet = {
   id: string;
   url: string;
   text: string;
+  screenshot?: string; // data URL (base64) for now; will move to storage when backend is wired
   postedAt?: string;
   submittedAt: string;
 };
@@ -87,7 +88,7 @@ export function upsertUser(input: {
 
 export function addTweet(
   username: string,
-  tweet: { url: string; text: string; postedAt?: string }
+  tweet: { url: string; text: string; postedAt?: string; screenshot?: string }
 ): UserRecord | null {
   const db = loadDB();
   const key = normalize(username);
@@ -97,6 +98,7 @@ export function addTweet(
     id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     url: tweet.url,
     text: tweet.text,
+    screenshot: tweet.screenshot,
     postedAt: tweet.postedAt,
     submittedAt: new Date().toISOString(),
   });
