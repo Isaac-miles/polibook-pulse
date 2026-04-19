@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { addTweet, exportDB, getUser, upsertUser, type UserRecord } from "@/lib/store";
+import { getUser, createTweet, exportAll, downloadJSON, type UserRecord } from "@/lib/api";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
@@ -32,6 +32,7 @@ function UploadPage() {
   const [username, setUsername] = useState("");
   const [foundUser, setFoundUser] = useState<UserRecord | null>(null);
   const [checked, setChecked] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   // new user fields
   const [displayName, setDisplayName] = useState("");
@@ -44,79 +45,110 @@ function UploadPage() {
   const [tweetUrl, setTweetUrl] = useState("");
   const [tweetText, setTweetText] = useState("");
   const [postedAt, setPostedAt] = useState("");
-  const [screenshot, setScreenshot] = useState<string | undefined>(undefined);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | undefined>(undefined);
 
-  const handleScreenshot = async (file: File | null) => {
-    if (!file) return setScreenshot(undefined);
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Image too large (max 4MB while in local mode)");
+  // action states
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleScreenshot = (file: File | null) => {
+    if (!file) {
+      setScreenshotFile(null);
+      setScreenshotPreview(undefined);
       return;
     }
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image too large — maximum 4 MB");
+      return;
+    }
+    setScreenshotFile(file);
     const reader = new FileReader();
-    reader.onload = () => setScreenshot(reader.result as string);
+    reader.onload = () => setScreenshotPreview(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  const handleCheck = () => {
-    if (!username.trim()) {
-      toast.error("Enter a username first");
+  const handleCheck = async () => {
+    const q = username.trim();
+    if (!q) {
+      toast.error("Enter a display name first");
       return;
     }
-    const u = getUser(username);
-    setFoundUser(u);
-    setChecked(true);
-    if (u) {
-      setDisplayName(u.displayName);
-      toast.success(`Found @${u.username} — ${u.displayName}`);
-    } else {
-      toast.message("New user — fill in their info below");
+
+    setChecking(true);
+    try {
+      const u = await getUser(q);
+      setFoundUser(u);
+      setChecked(true);
+      if (u) {
+        setDisplayName(u.displayName);
+        toast.success(`Found ${u.displayName} — ${u.tweets.length} tweet(s)`);
+      } else {
+        toast.message("New user — fill in their info below");
+      }
+    } catch {
+      toast.error("Failed to check — please try again");
+    } finally {
+      setChecking(false);
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return toast.error("Username is required");
+    if (!username.trim()) return toast.error("Display name is required");
     if (!tweetText.trim()) return toast.error("Tweet text is required");
 
-    let user = foundUser;
-    if (!user) {
-      if (!displayName.trim()) return toast.error("Display name is required for new users");
-      user = upsertUser({
-        username,
-        displayName,
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        party: party || undefined,
-        notes: notes || undefined,
-      });
+    const effectiveDisplayName = foundUser ? foundUser.displayName : displayName.trim();
+
+    if (!foundUser && !effectiveDisplayName) {
+      return toast.error("Display name is required for new users");
     }
 
-    const updated = addTweet(user.username, {
-      url: tweetUrl,
-      text: tweetText,
-      postedAt: postedAt ? new Date(postedAt).toISOString() : undefined,
-      screenshot,
-    });
+    setSaving(true);
+    try {
+      await createTweet({
+        displayName: effectiveDisplayName,
+        firstName: (foundUser?.firstName ?? firstName) || undefined,
+        lastName: (foundUser?.lastName ?? lastName) || undefined,
+        partyAffiliation: (foundUser?.party ?? party) || undefined,
+        notes: (foundUser?.notes ?? notes) || undefined,
+        tweetUrl: tweetUrl || undefined,
+        tweetText,
+        postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
+        screenshot: screenshotFile ?? undefined,
+      });
 
-    if (updated) {
-      setFoundUser(updated);
+      // Refresh user record to get updated tweet count
+      const refreshed = await getUser(effectiveDisplayName);
+      setFoundUser(refreshed);
+
+      // Reset tweet fields only (keep user context)
       setTweetUrl("");
       setTweetText("");
       setPostedAt("");
-      setScreenshot(undefined);
-      toast.success("Tweet archived");
+      setScreenshotFile(null);
+      setScreenshotPreview(undefined);
+
+      toast.success("Tweet archived successfully");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Save failed";
+      toast.error(msg);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleExport = () => {
-    const blob = new Blob([exportDB()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "users.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Downloaded users.json");
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const data = await exportAll();
+      downloadJSON(data);
+      toast.success("Downloaded trail-export.json");
+    } catch {
+      toast.error("Export failed");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -127,23 +159,19 @@ function UploadPage() {
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold">Archive a tweet</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter a username. If they're already in the archive, paste their tweet.
-            If not, you'll add their basic info first.
+            Enter a display name. If they're already in the archive, paste their tweet. If not,
+            you'll add their basic info first.
           </p>
         </div>
 
-        {/* <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-foreground">
-          <strong className="text-amber-700">Heads up:</strong> data saves to your browser only.
-          Use <em>Export JSON</em> to download and commit <code>src/data/users.json</code> for everyone to see.
-        </div> */}
-
         <div className="mt-6 space-y-6">
+          {/* ---- Step 1: Look up user ---- */}
           <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-            <Label htmlFor="username">Twitter username</Label>
+            <Label htmlFor="username">Display name</Label>
             <div className="mt-2 flex gap-2">
               <Input
                 id="username"
-                placeholder="e.g. sample_user"
+                placeholder="e.g. Bola Tinubu"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
@@ -151,31 +179,35 @@ function UploadPage() {
                   setFoundUser(null);
                 }}
               />
-              <Button type="button" onClick={handleCheck}>
-                Check
+              <Button type="button" onClick={handleCheck} disabled={checking}>
+                {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check"}
               </Button>
             </div>
             {checked && foundUser && (
               <p className="mt-3 text-sm text-foreground">
                 ✓ Existing user: <strong>{foundUser.displayName}</strong>{" "}
-                <span className="text-muted-foreground">({foundUser.tweets.length} tweets)</span>
+                <span className="text-muted-foreground">
+                  ({foundUser.tweets.length} tweet
+                  {foundUser.tweets.length !== 1 ? "s" : ""})
+                </span>
               </p>
             )}
-            {checked && !foundUser && (
+            {checked && !foundUser && !checking && (
               <p className="mt-3 text-sm text-muted-foreground">
                 New user — please fill in their info below.
               </p>
             )}
           </div>
 
+          {/* ---- Step 2+3: User info & Tweet form ---- */}
           {checked && (
             <form onSubmit={handleSave} className="space-y-6">
+              {/* New user fields */}
               {!foundUser && (
                 <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
                   <h2 className="font-display text-lg font-semibold">User information</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Only display name is required. Username will be saved as{" "}
-                    <code>{username.replace(/^@/, "").toLowerCase()}</code>.
+                    Only display name is required.
                   </p>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
@@ -229,6 +261,7 @@ function UploadPage() {
                 </div>
               )}
 
+              {/* Tweet fields */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
                 <h2 className="font-display text-lg font-semibold">Tweet</h2>
                 <div className="mt-4 space-y-4">
@@ -266,7 +299,7 @@ function UploadPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="screenshot">Screenshot (optional, max 4MB)</Label>
+                    <Label htmlFor="screenshot">Screenshot (optional, max 4 MB)</Label>
                     <Input
                       id="screenshot"
                       type="file"
@@ -274,12 +307,24 @@ function UploadPage() {
                       onChange={(e) => handleScreenshot(e.target.files?.[0] ?? null)}
                       className="mt-1.5 cursor-pointer"
                     />
-                    {screenshot && (
+                    {screenshotPreview && (
                       <div className="mt-3 overflow-hidden rounded-lg border border-border">
-                        <img src={screenshot} alt="Preview" className="max-h-64 w-full object-contain bg-muted" />
+                        <img
+                          src={screenshotPreview}
+                          alt="Preview"
+                          className="max-h-64 w-full object-contain bg-muted"
+                        />
                         <button
                           type="button"
-                          onClick={() => setScreenshot(undefined)}
+                          onClick={() => {
+                            setScreenshotFile(null);
+                            setScreenshotPreview(undefined);
+                            // Reset the file input
+                            const input = document.getElementById(
+                              "screenshot",
+                            ) as HTMLInputElement | null;
+                            if (input) input.value = "";
+                          }}
                           className="block w-full border-t border-border bg-muted px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"
                         >
                           Remove screenshot
@@ -290,10 +335,25 @@ function UploadPage() {
                 </div>
               </div>
 
+              {/* Action buttons */}
               <div className="flex flex-wrap gap-3">
-                <Button type="submit" size="lg">Save to archive</Button>
-                <Button type="button" variant="outline" onClick={handleExport}>
-                  <Download className="mr-2 h-4 w-4" /> Export JSON
+                <Button type="submit" size="lg" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    "Save to archive"
+                  )}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleExport} disabled={exporting}>
+                  {exporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Export JSON
                 </Button>
               </div>
             </form>
