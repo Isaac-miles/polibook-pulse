@@ -92,7 +92,7 @@ function Index() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter display name (e.g. Bola Tinubu)"
+                placeholder="Enter display name (e.g. Jane Doe)"
                 className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
               />
             </div>
