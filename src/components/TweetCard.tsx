@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Tweet } from "@/lib/store";
+import type { Tweet } from "@/lib/api";
 import { ExternalLink, ImageIcon, X } from "lucide-react";
 
 function formatDate(iso?: string) {
@@ -48,7 +48,7 @@ export function TweetCard({ tweet }: { tweet: Tweet }) {
           </span>
           <span>
             <span className="font-medium text-foreground/70">Archived:</span>{" "}
-            {formatDate(tweet.submittedAt)}
+            {formatDate(tweet.createdAt)}
           </span>
         </div>
         <div className="flex items-center gap-3">
