@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TweetCard } from "@/components/TweetCard";
-import { getUser, type UserRecord } from "@/lib/store";
+import { getUser, type UserRecord } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserCircle2 } from "lucide-react";
+import { Search, UserCircle2, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,14 +29,28 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<UserRecord | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    const found = getUser(query);
-    setUser(found);
+
+    setLoading(true);
+    setError(null);
     setSearched(true);
+
+    try {
+      const found = await getUser(query.trim());
+      setUser(found);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Search failed";
+      setError(msg);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,12 +72,15 @@ function Index() {
             Public record · Naija on the trail
           </div>
           <h1 className="mt-5 font-display text-3xl font-bold tracking-tight text-white md:text-7xl">
-            Accountability  <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">archive</span>
+            Accountability{" "}
+            <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              archive
+            </span>
           </h1>
           <p className="mt-5 max-w-2xl text-base text-white/90 md:text-lg">
-            A community archive of political statements posted on X/Twitter by
-            Nigerian public figures. Search any username to see what they actually
-            said — with timestamps, screenshots, and sources.
+            A community archive of political statements posted on X/Twitter by Nigerian public
+            figures. Search any username to see what they actually said — with timestamps,
+            screenshots, and sources.
           </p>
 
           <form
@@ -75,31 +92,63 @@ function Index() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter username (e.g. sample_user)"
+                placeholder="Enter display name (e.g. Bola Tinubu)"
                 className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
               />
             </div>
-            <Button type="submit" size="lg" className="shrink-0">
-              Load tweets & info
+            <Button type="submit" size="lg" className="shrink-0" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Searching…
+                </>
+              ) : (
+                "Load tweets & info"
+              )}
             </Button>
           </form>
         </div>
       </section>
 
       <main className="mx-auto max-w-5xl px-4 py-12">
+        {/* Initial empty state */}
         {!searched && (
           <div className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center backdrop-blur">
             <p className="text-sm text-muted-foreground">
-              Try searching <code className="rounded bg-secondary px-1.5 py-0.5 text-foreground">sample_user</code> to see how a record looks.
+              Search a display name to load their archived tweets and public record.
             </p>
           </div>
         )}
 
-        {searched && !user && (
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Searching the archive…</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {!loading && error && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+            <h2 className="font-display text-lg font-semibold text-destructive">
+              Something went wrong
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={handleSearch as any}>
+              Try again
+            </Button>
+          </div>
+        )}
+
+        {/* Not found */}
+        {searched && !loading && !error && !user && (
           <div className="rounded-lg border border-border bg-card p-10 text-center">
             <h2 className="font-display text-xl font-semibold">No record found</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              No archive exists for <strong>@{query}</strong> yet.
+              No archive exists for <strong>{query}</strong> yet.
             </p>
             <a
               href="/upload"
@@ -110,8 +159,10 @@ function Index() {
           </div>
         )}
 
-        {user && (
+        {/* Results */}
+        {!loading && user && (
           <div className="space-y-6">
+            {/* User profile card */}
             <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[image:var(--gradient-hero)] text-primary-foreground">
                 <UserCircle2 className="h-9 w-9" />
@@ -143,6 +194,7 @@ function Index() {
               </div>
             </div>
 
+            {/* Tweet list */}
             <div>
               <h3 className="mb-4 font-display text-lg font-semibold">
                 Archived statements ({user.tweets.length})
@@ -152,7 +204,9 @@ function Index() {
                   <p className="text-sm text-muted-foreground">No tweets archived yet.</p>
                 )}
                 {user.tweets.map((t) => (
-                  <TweetCard key={t.id} tweet={t} />
+                  <div key={t.id} className="space-y-2">
+                    <TweetCard tweet={t} />
+                  </div>
                 ))}
               </div>
             </div>
