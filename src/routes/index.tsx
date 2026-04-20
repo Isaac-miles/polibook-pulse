@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TweetCard } from "@/components/TweetCard";
-import { getUser, type UserRecord } from "@/lib/api";
+import { searchUsers, type UserRecord } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, UserCircle2, Loader2 } from "lucide-react";
@@ -31,7 +31,7 @@ function Index() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<UserRecord | null>(null);
+  const [users, setUsers] = useState<UserRecord[]>([]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,12 +42,12 @@ function Index() {
     setSearched(true);
 
     try {
-      const found = await getUser(query.trim());
-      setUser(found);
+      const found = await searchUsers(query.trim());
+      setUsers(found);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Search failed";
       setError(msg);
-      setUser(null);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -79,8 +79,8 @@ function Index() {
           </h1>
           <p className="mt-5 max-w-2xl text-base text-white/90 md:text-lg">
             A community archive of political statements posted on X/Twitter by Nigerian public
-            figures. Search any username to see what they actually said — with timestamps,
-            screenshots, and sources.
+            figures. Search any name, party, or keyword to see what they actually said — with
+            timestamps, screenshots, and sources.
           </p>
 
           <form
@@ -92,7 +92,7 @@ function Index() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter display name (e.g. Jane Doe)"
+                placeholder="Search by name, party, or keyword…"
                 className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
               />
             </div>
@@ -103,7 +103,7 @@ function Index() {
                   Searching…
                 </>
               ) : (
-                "Load tweets & info"
+                "Search archive"
               )}
             </Button>
           </form>
@@ -115,18 +115,16 @@ function Index() {
         {!searched && (
           <div className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center backdrop-blur">
             <p className="text-sm text-muted-foreground">
-              Search a display name to load their archived tweets and public record.
+              Search a name, party affiliation, or keyword to find archived tweets.
             </p>
           </div>
         )}
 
-        {/* Loading skeleton */}
+        {/* Loading */}
         {loading && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Searching the archive…</p>
-            </div>
+          <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Searching the archive…</p>
           </div>
         )}
 
@@ -144,72 +142,85 @@ function Index() {
         )}
 
         {/* Not found */}
-        {searched && !loading && !error && !user && (
+        {searched && !loading && !error && users.length === 0 && (
           <div className="rounded-lg border border-border bg-card p-10 text-center">
-            <h2 className="font-display text-xl font-semibold">No record found</h2>
+            <h2 className="font-display text-xl font-semibold">No results found</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              No archive exists for <strong>{query}</strong> yet.
+              Nothing in the archive matches <strong>"{query}"</strong>.
             </p>
             <a
               href="/upload"
               className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              Be the first to add them
+              Be the first to add a record
             </a>
           </div>
         )}
 
         {/* Results */}
-        {!loading && user && (
-          <div className="space-y-6">
-            {/* User profile card */}
-            <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[image:var(--gradient-hero)] text-primary-foreground">
-                <UserCircle2 className="h-9 w-9" />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-display text-2xl font-bold">{user.displayName}</h2>
-                <p className="text-sm text-muted-foreground">@{user.username}</p>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                  {(user.firstName || user.lastName) && (
-                    <span>
-                      <span className="font-medium text-foreground/70">Name:</span>{" "}
-                      {[user.firstName, user.lastName].filter(Boolean).join(" ")}
-                    </span>
-                  )}
-                  {user.party && (
-                    <span>
-                      <span className="font-medium text-foreground/70">Affiliation:</span>{" "}
-                      {user.party}
-                    </span>
-                  )}
-                  <span>
-                    <span className="font-medium text-foreground/70">Tweets archived:</span>{" "}
-                    {user.tweets.length}
-                  </span>
-                </div>
-                {user.notes && (
-                  <p className="mt-2 text-sm italic text-muted-foreground">{user.notes}</p>
-                )}
-              </div>
-            </div>
+        {!loading && users.length > 0 && (
+          <div className="space-y-10">
+            {/* Result count */}
+            <p className="text-sm text-muted-foreground">
+              Found{" "}
+              <strong className="text-foreground">
+                {users.reduce((sum, u) => sum + u.tweets.length, 0)} tweet
+                {users.reduce((sum, u) => sum + u.tweets.length, 0) !== 1 ? "s" : ""}
+              </strong>{" "}
+              across{" "}
+              <strong className="text-foreground">
+                {users.length} {users.length === 1 ? "person" : "people"}
+              </strong>{" "}
+              matching "{query}"
+            </p>
 
-            {/* Tweet list */}
-            <div>
-              <h3 className="mb-4 font-display text-lg font-semibold">
-                Archived statements ({user.tweets.length})
-              </h3>
-              <div className="space-y-3">
-                {user.tweets.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No tweets archived yet.</p>
-                )}
-                {user.tweets.map((t) => (
-                  <div key={t.id} className="space-y-2">
-                    <TweetCard tweet={t} />
+            {users.map((user) => (
+              <div key={user.username} className="space-y-6">
+                {/* User profile card */}
+                <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[image:var(--gradient-hero)] text-primary-foreground">
+                    <UserCircle2 className="h-9 w-9" />
                   </div>
-                ))}
+                  <div className="flex-1">
+                    <h2 className="font-display text-2xl font-bold">{user.displayName}</h2>
+                    <p className="text-sm text-muted-foreground">@{user.username}</p>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      {(user.firstName || user.lastName) && (
+                        <span>
+                          <span className="font-medium text-foreground/70">Name:</span>{" "}
+                          {[user.firstName, user.lastName].filter(Boolean).join(" ")}
+                        </span>
+                      )}
+                      {user.party && (
+                        <span>
+                          <span className="font-medium text-foreground/70">Affiliation:</span>{" "}
+                          {user.party}
+                        </span>
+                      )}
+                      <span>
+                        <span className="font-medium text-foreground/70">Tweets archived:</span>{" "}
+                        {user.tweets.length}
+                      </span>
+                    </div>
+                    {user.notes && (
+                      <p className="mt-2 text-sm italic text-muted-foreground">{user.notes}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tweet list */}
+                <div>
+                  <h3 className="mb-4 font-display text-lg font-semibold">
+                    Archived statements ({user.tweets.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {user.tweets.map((t) => (
+                      <TweetCard key={t.id} tweet={t} />
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         )}
       </main>

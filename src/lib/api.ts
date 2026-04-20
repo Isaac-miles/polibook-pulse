@@ -1,5 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
+
 export interface TweetDoc {
   _id: string;
   displayName: string;
@@ -32,6 +33,8 @@ interface PaginatedResponse {
   };
 }
 
+// ---- Frontend shape (grouped by user) ------------------------------------
+
 export interface Tweet {
   id: string;
   url: string;
@@ -51,6 +54,9 @@ export interface UserRecord {
   tweets: Tweet[];
 }
 
+// ---- Helpers --------------------------------------------------------------
+
+/** Turn a flat backend doc into the frontend Tweet shape. */
 function docToTweet(doc: TweetDoc): Tweet {
   return {
     id: doc._id,
@@ -85,11 +91,11 @@ function docsToUserRecord(docs: TweetDoc[]): UserRecord | null {
 
 /**
  * Search tweets by a query string (matches displayName, names, party, text).
- * Returns ALL matching results (paginates under the hood up to 200).
+ * Returns the raw paginated response from the backend.
  */
 export async function searchTweets(
   query: string,
-  opts: { page?: number; limit?: number } = {},
+  opts: { page?: number; limit?: number } = {}
 ): Promise<PaginatedResponse> {
   const params = new URLSearchParams({
     search: query,
@@ -107,14 +113,45 @@ export async function searchTweets(
 }
 
 /**
- * Look up a user by displayName and return a grouped UserRecord.
- * Returns null if nothing is found.
+ * Group an array of docs into multiple UserRecords keyed by displayName.
+ */
+function groupByUser(docs: TweetDoc[]): UserRecord[] {
+  const map = new Map<string, TweetDoc[]>();
+
+  for (const doc of docs) {
+    const key = doc.displayName.toLowerCase();
+    const arr = map.get(key) ?? [];
+    arr.push(doc);
+    map.set(key, arr);
+  }
+
+  const users: UserRecord[] = [];
+  for (const group of map.values()) {
+    const record = docsToUserRecord(group);
+    if (record) users.push(record);
+  }
+  return users;
+}
+
+/**
+ * Fuzzy search — returns all matching users grouped by displayName.
+ * Searches across displayName, firstName, lastName, party, notes, tweetText.
+ */
+export async function searchUsers(query: string): Promise<UserRecord[]> {
+  const { data } = await searchTweets(query, { limit: 200 });
+  return groupByUser(data);
+}
+
+/**
+ * Exact lookup by displayName — returns a single UserRecord or null.
+ * Used by the upload page to check if a user already exists.
  */
 export async function getUser(displayName: string): Promise<UserRecord | null> {
   const { data } = await searchTweets(displayName, { limit: 200 });
 
-  // Filter to exact displayName match (search is fuzzy)
-  const exact = data.filter((d) => d.displayName.toLowerCase() === displayName.toLowerCase());
+  const exact = data.filter(
+    (d) => d.displayName.toLowerCase() === displayName.toLowerCase()
+  );
 
   return docsToUserRecord(exact);
 }
@@ -188,14 +225,13 @@ export async function updateTweet(
     postedOn?: string;
     screenshot?: File;
     removeScreenshot?: boolean;
-  },
+  }
 ): Promise<TweetDoc> {
   const fd = new FormData();
   if (payload.displayName !== undefined) fd.append("displayName", payload.displayName);
   if (payload.firstName !== undefined) fd.append("firstName", payload.firstName);
   if (payload.lastName !== undefined) fd.append("lastName", payload.lastName);
-  if (payload.partyAffiliation !== undefined)
-    fd.append("partyAffiliation", payload.partyAffiliation);
+  if (payload.partyAffiliation !== undefined) fd.append("partyAffiliation", payload.partyAffiliation);
   if (payload.notes !== undefined) fd.append("notes", payload.notes);
   if (payload.tweetUrl !== undefined) fd.append("tweetUrl", payload.tweetUrl);
   if (payload.tweetText !== undefined) fd.append("tweetText", payload.tweetText);
