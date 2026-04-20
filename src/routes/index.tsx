@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TweetCard } from "@/components/TweetCard";
-import { getUser, type UserRecord } from "@/lib/api";
+import { type UserRecord } from "@/lib/api";
+import { useGetUser } from "@/hooks/useQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, UserCircle2, Loader2 } from "lucide-react";
@@ -29,28 +30,20 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<UserRecord | null>(null);
+
+  // Use React Query hook for user data fetching and caching
+  const {
+    data: user,
+    isLoading,
+    error,
+  } = useGetUser(searched ? query : "", {
+    enabled: searched && query.length > 0,
+  });
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-
-    setLoading(true);
-    setError(null);
     setSearched(true);
-
-    try {
-      const found = await getUser(query.trim());
-      setUser(found);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Search failed";
-      setError(msg);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -69,9 +62,9 @@ function Index() {
         <div className="relative mx-auto max-w-5xl px-4 py-20 md:py-28">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white backdrop-blur">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-            Public record · Naija on the trail
+            Public record · Nigeria on the trail
           </div>
-          <h1 className="mt-5 font-display text-3xl font-bold tracking-tight text-white md:text-7xl">
+          <h1 className="mt-5 font-sans text-3xl font-bold tracking-tight text-white md:text-7xl">
             Accountability{" "}
             <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
               archive
@@ -92,12 +85,12 @@ function Index() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter display name (e.g. Bola Tinubu)"
+                placeholder="Enter display name (e.g. Jon Doe or @jondoe)"
                 className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
               />
             </div>
-            <Button type="submit" size="lg" className="shrink-0" disabled={loading}>
-              {loading ? (
+            <Button type="submit" size="lg" className="shrink-0" disabled={isLoading}>
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Searching…
@@ -121,7 +114,7 @@ function Index() {
         )}
 
         {/* Loading skeleton */}
-        {loading && (
+        {isLoading && (
           <div className="space-y-4">
             <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -131,20 +124,22 @@ function Index() {
         )}
 
         {/* Error state */}
-        {!loading && error && (
+        {!isLoading && error && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
             <h2 className="font-display text-lg font-semibold text-destructive">
               Something went wrong
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">{error}</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={handleSearch as any}>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : "Search failed"}
+            </p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => setSearched(false)}>
               Try again
             </Button>
           </div>
         )}
 
         {/* Not found */}
-        {searched && !loading && !error && !user && (
+        {searched && !isLoading && !error && !user && (
           <div className="rounded-lg border border-border bg-card p-10 text-center">
             <h2 className="font-display text-xl font-semibold">No record found</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -160,7 +155,7 @@ function Index() {
         )}
 
         {/* Results */}
-        {!loading && user && (
+        {!isLoading && user && (
           <div className="space-y-6">
             {/* User profile card */}
             <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center">

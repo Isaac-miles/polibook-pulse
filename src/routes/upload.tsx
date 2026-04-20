@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getUser, createTweet, exportAll, downloadJSON, type UserRecord } from "@/lib/api";
+import { downloadJSON, type UserRecord, type TweetDoc } from "@/lib/api";
+import { useGetUser, useCreateTweet, useExportAll } from "@/hooks/useQueries";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Download, Loader2 } from "lucide-react";
@@ -30,9 +31,7 @@ export const Route = createFileRoute("/upload")({
 
 function UploadPage() {
   const [username, setUsername] = useState("");
-  const [foundUser, setFoundUser] = useState<UserRecord | null>(null);
   const [checked, setChecked] = useState(false);
-  const [checking, setChecking] = useState(false);
 
   // new user fields
   const [displayName, setDisplayName] = useState("");
@@ -48,9 +47,43 @@ function UploadPage() {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | undefined>(undefined);
 
-  // action states
-  const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  // Use React Query hooks
+  const { data: foundUser, isLoading: checking } = useGetUser(checked ? username : "", {
+    enabled: checked && username.length > 0,
+  });
+
+  const createTweetMutation = useCreateTweet({
+    onSuccess: (newTweet: TweetDoc) => {
+      // Reset tweet fields only (keep user context)
+      setTweetUrl("");
+      setTweetText("");
+      setPostedAt("");
+      setScreenshotFile(null);
+      setScreenshotPreview(undefined);
+      toast.success("Tweet archived successfully");
+    },
+    onError: (err: Error) => {
+      const msg = err instanceof Error ? err.message : "Save failed";
+      toast.error(msg);
+    },
+  });
+
+  const {
+    data: exportData,
+    isLoading: exporting,
+    refetch: exportRefetch,
+  } = useExportAll({
+    enabled: false,
+  });
+
+  // Show toast when user is found
+  useEffect(() => {
+    if (checked && !checking && foundUser) {
+      toast.success(`Found ${foundUser.displayName} — ${foundUser.tweets.length} tweet(s)`);
+    } else if (checked && !checking && !foundUser) {
+      toast.message("New user — fill in their info below");
+    }
+  }, [checked, checking, foundUser]);
 
   const handleScreenshot = (file: File | null) => {
     if (!file) {
@@ -74,23 +107,7 @@ function UploadPage() {
       toast.error("Enter a display name first");
       return;
     }
-
-    setChecking(true);
-    try {
-      const u = await getUser(q);
-      setFoundUser(u);
-      setChecked(true);
-      if (u) {
-        setDisplayName(u.displayName);
-        toast.success(`Found ${u.displayName} — ${u.tweets.length} tweet(s)`);
-      } else {
-        toast.message("New user — fill in their info below");
-      }
-    } catch {
-      toast.error("Failed to check — please try again");
-    } finally {
-      setChecking(false);
-    }
+    setChecked(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -104,50 +121,28 @@ function UploadPage() {
       return toast.error("Display name is required for new users");
     }
 
-    setSaving(true);
-    try {
-      await createTweet({
-        displayName: effectiveDisplayName,
-        firstName: (foundUser?.firstName ?? firstName) || undefined,
-        lastName: (foundUser?.lastName ?? lastName) || undefined,
-        partyAffiliation: (foundUser?.party ?? party) || undefined,
-        notes: (foundUser?.notes ?? notes) || undefined,
-        tweetUrl: tweetUrl || undefined,
-        tweetText,
-        postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
-        screenshot: screenshotFile ?? undefined,
-      });
-
-      // Refresh user record to get updated tweet count
-      const refreshed = await getUser(effectiveDisplayName);
-      setFoundUser(refreshed);
-
-      // Reset tweet fields only (keep user context)
-      setTweetUrl("");
-      setTweetText("");
-      setPostedAt("");
-      setScreenshotFile(null);
-      setScreenshotPreview(undefined);
-
-      toast.success("Tweet archived successfully");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Save failed";
-      toast.error(msg);
-    } finally {
-      setSaving(false);
-    }
+    createTweetMutation.mutate({
+      displayName: effectiveDisplayName,
+      firstName: (foundUser?.firstName ?? firstName) || undefined,
+      lastName: (foundUser?.lastName ?? lastName) || undefined,
+      partyAffiliation: (foundUser?.party ?? party) || undefined,
+      notes: (foundUser?.notes ?? notes) || undefined,
+      tweetUrl: tweetUrl || undefined,
+      tweetText,
+      postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
+      screenshot: screenshotFile ?? undefined,
+    });
   };
 
   const handleExport = async () => {
-    setExporting(true);
     try {
-      const data = await exportAll();
-      downloadJSON(data);
-      toast.success("Downloaded trail-export.json");
+      const result = await exportRefetch();
+      if (result.data) {
+        downloadJSON(result.data);
+        toast.success("Downloaded trail-export.json");
+      }
     } catch {
       toast.error("Export failed");
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -171,12 +166,11 @@ function UploadPage() {
             <div className="mt-2 flex gap-2">
               <Input
                 id="username"
-                placeholder="e.g. Bola Tinubu"
+                placeholder="e.g. Jon Doe"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   setChecked(false);
-                  setFoundUser(null);
                 }}
               />
               <Button type="button" onClick={handleCheck} disabled={checking}>
@@ -337,8 +331,8 @@ function UploadPage() {
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-3">
-                <Button type="submit" size="lg" disabled={saving}>
-                  {saving ? (
+                <Button type="submit" size="lg" disabled={createTweetMutation.isPending}>
+                  {createTweetMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving…

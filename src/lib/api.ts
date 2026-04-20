@@ -1,3 +1,5 @@
+import { apiClient } from "./apiClient";
+
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 export interface TweetDoc {
@@ -22,7 +24,7 @@ export interface TweetDoc {
   updatedAt: string;
 }
 
-interface PaginatedResponse {
+export interface PaginatedResponse {
   data: TweetDoc[];
   meta: {
     total: number;
@@ -91,19 +93,18 @@ export async function searchTweets(
   query: string,
   opts: { page?: number; limit?: number } = {},
 ): Promise<PaginatedResponse> {
-  const params = new URLSearchParams({
+  const params = {
     search: query,
-    page: String(opts.page ?? 1),
-    limit: String(opts.limit ?? 100),
+    page: opts.page ?? 1,
+    limit: opts.limit ?? 100,
     sort: "-createdAt",
+  };
+
+  const response = await apiClient.get<PaginatedResponse>("/api/tweets", {
+    params,
   });
 
-  const res = await fetch(`${API_BASE}/api/tweets?${params}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Search failed (${res.status})`);
-  }
-  return res.json();
+  return response.data;
 }
 
 /**
@@ -123,12 +124,8 @@ export async function getUser(displayName: string): Promise<UserRecord | null> {
  * Fetch a single tweet doc by ID.
  */
 export async function getTweet(id: string): Promise<TweetDoc> {
-  const res = await fetch(`${API_BASE}/api/tweets/${id}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Not found (${res.status})`);
-  }
-  return res.json();
+  const response = await apiClient.get<TweetDoc>(`/api/tweets/${id}`);
+  return response.data;
 }
 
 /**
@@ -160,16 +157,13 @@ export async function createTweet(payload: {
     fd.append("screenshot", payload.screenshot);
   }
 
-  const res = await fetch(`${API_BASE}/api/tweets`, {
-    method: "POST",
-    body: fd,
+  const response = await apiClient.post<TweetDoc>("/api/tweets", fd, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Create failed (${res.status})`);
-  }
-  return res.json();
+  return response.data;
 }
 
 /**
@@ -203,29 +197,20 @@ export async function updateTweet(
   if (payload.removeScreenshot) fd.append("removeScreenshot", "true");
   if (payload.screenshot) fd.append("screenshot", payload.screenshot);
 
-  const res = await fetch(`${API_BASE}/api/tweets/${id}`, {
-    method: "PUT",
-    body: fd,
+  const response = await apiClient.put<TweetDoc>(`/api/tweets/${id}`, fd, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Update failed (${res.status})`);
-  }
-  return res.json();
+  return response.data;
 }
 
 /**
  * Delete a tweet record by ID.
  */
 export async function deleteTweet(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/tweets/${id}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Delete failed (${res.status})`);
-  }
+  await apiClient.delete(`/api/tweets/${id}`);
 }
 
 /**
