@@ -171,7 +171,7 @@ function UploadPage() {
             <div className="mt-2 flex gap-2">
               <Input
                 id="username"
-                placeholder="e.g. Bola Tinubu"
+                placeholder="e.g. John Doe"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
