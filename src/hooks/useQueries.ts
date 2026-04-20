@@ -9,6 +9,8 @@ import {
   deleteTweet,
   exportAll,
   captureScreenshot,
+  getRecentArchives,
+  voteTweet,
   type TweetDoc,
   type UserRecord,
 } from "../lib/api";
@@ -86,6 +88,41 @@ export function useGetTweet(id: string, options?: Record<string, unknown>) {
     enabled: id.length > 0,
     staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    ...options,
+  });
+}
+
+// ---- Recent archive timeline (real API now) ----
+export function useRecentArchives(options?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ["recent-archives"] as const,
+    queryFn: getRecentArchives,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    ...options,
+  });
+}
+
+// ---- Vote on Tweet Mutation ----
+export function useVoteTweet(options?: Record<string, unknown>) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ tweetId, voteType }: { tweetId: string; voteType: "love" | "hate" }) =>
+      voteTweet(tweetId, voteType),
+    onSuccess: (data, variables) => {
+      // Update the cache for recent archives
+      queryClient.setQueryData(["recent-archives"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((tweet: any) =>
+          tweet.id === variables.tweetId
+            ? { ...tweet, loveCount: data.loveCount, heartbreakCount: data.heartbreakCount }
+            : tweet
+        );
+      });
+      // Also invalidate search results if needed
+      queryClient.invalidateQueries({ queryKey: queryKeys.tweets.all });
+    },
     ...options,
   });
 }

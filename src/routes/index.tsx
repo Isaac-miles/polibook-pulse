@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TweetCard } from "@/components/TweetCard";
-import { useSearchUsers } from "@/hooks/useQueries";
+import { useSearchUsers, useRecentArchives } from "@/hooks/useQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserCircle2, Loader2 } from "lucide-react";
+import { Search, UserCircle2, Plus, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,6 +39,8 @@ function Index() {
   } = useSearchUsers(activeQuery, {
     enabled: searched && activeQuery.length > 0,
   });
+
+  const { data: recentArchives } = useRecentArchives();
 
   const handleSearch = useCallback(
     (e: React.FormEvent) => {
@@ -90,9 +92,22 @@ function Index() {
             timestamps, screenshots, and sources.
           </p>
 
+          {/* <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <a
+              href="/upload"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" />
+              Create archive
+            </a>
+            <p className="max-w-xl text-sm text-white/80">
+              Quickly add a new record to the archive and keep the community timeline up to date.
+            </p>
+          </div> */}
+
           <form
             onSubmit={handleSearch}
-            className="mt-10 flex flex-col gap-2 rounded-2xl bg-card p-2 shadow-[var(--shadow-elevated)] sm:flex-row"
+            className="mt-4 flex flex-col gap-2 rounded-2xl bg-card p-2 shadow-[var(--shadow-elevated)] sm:flex-row"
           >
             <div className="flex flex-1 items-center gap-2 px-4">
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -118,12 +133,27 @@ function Index() {
       </section>
 
       <main className="mx-auto max-w-5xl px-4 py-12">
-        {/* Initial empty state */}
+        {/* Recent timeline on home page */}
         {!searched && (
-          <div className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center backdrop-blur">
-            <p className="text-sm text-muted-foreground">
-              Search a name, party affiliation, or keyword to find archived tweets.
-            </p>
+          <div className="rounded-3xl border border-border bg-card/90 p-6 shadow-[var(--shadow-soft)] backdrop-blur-lg">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">Community timeline</p>
+                <h2 className="mt-2 text-2xl font-semibold text-foreground">Recently added archives</h2>
+              </div>
+              {/* <a
+                href="/upload"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4" />
+                Add new archive
+              </a> */}
+            </div>
+            <div className="space-y-4">
+              {recentArchives?.map((tweet) => (
+                <TweetCard key={tweet.id} tweet={tweet} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -233,6 +263,13 @@ function Index() {
         )}
       </main>
 
+      <a
+        href="/upload"
+        className="fixed bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition hover:bg-primary/90 sm:bottom-6 sm:right-6"
+      >
+        <Plus className="h-4 w-4" />
+        Create archive
+      </a>
       <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
         Trail · A community accountability project
       </footer>

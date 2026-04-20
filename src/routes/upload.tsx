@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,8 @@ function UploadPage() {
     enabled: checked && username.length > 0,
   });
 
+  const router = useRouter();
+
   const createTweetMutation = useCreateTweet({
     onSuccess: (newTweet: TweetDoc) => {
       // Reset tweet fields only (keep user context)
@@ -61,6 +63,7 @@ function UploadPage() {
       setScreenshotFile(null);
       setScreenshotPreview(undefined);
       toast.success("Tweet archived successfully");
+      router.navigate({ to: "/" });
     },
     onError: (err: Error) => {
       const msg = err instanceof Error ? err.message : "Save failed";

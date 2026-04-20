@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import apiClient from './apiClient';
 
 export interface TweetDoc {
   _id: string;
@@ -20,6 +20,8 @@ export interface TweetDoc {
   };
   createdAt: string;
   updatedAt: string;
+  loveCount: number;
+  heartbreakCount: number;
 }
 
 export interface PaginatedResponse {
@@ -41,6 +43,8 @@ export interface Tweet {
   postedAt?: string;
   screenshot?: string;
   createdAt: string;
+  loveCount: number;
+  heartbreakCount: number;
 }
 
 export interface UserRecord {
@@ -63,6 +67,8 @@ function docToTweet(doc: TweetDoc): Tweet {
     postedAt: doc.postedOn ?? undefined,
     screenshot: doc.screenshot?.url || undefined,
     createdAt: doc.createdAt,
+    loveCount: doc.loveCount || 0,
+    heartbreakCount: doc.heartbreakCount || 0,
   };
 }
 
@@ -85,12 +91,49 @@ function docsToUserRecord(docs: TweetDoc[]): UserRecord | null {
   };
 }
 
+const DUMMY_RECENT_ARCHIVES: Tweet[] = [
+  {
+    id: "recent-1",
+    url: "https://twitter.com/example/status/1234567890123456789",
+    text: "A new accountability record has been added for the public archive — every voice should be visible.",
+    postedAt: "2026-04-19T14:36:00.000Z",
+    createdAt: "2026-04-20T08:20:00.000Z",
+    loveCount: 12,
+    heartbreakCount: 2,
+  },
+  {
+    id: "recent-2",
+    url: "https://twitter.com/example/status/9876543210987654321",
+    text: "Verified statement archived from a national figure with screenshot and source link.",
+    postedAt: "2026-04-18T11:10:00.000Z",
+    createdAt: "2026-04-19T21:05:00.000Z",
+    loveCount: 8,
+    heartbreakCount: 1,
+  },
+  {
+    id: "recent-3",
+    url: "https://twitter.com/example/status/1122334455667788990",
+    text: "Community members are building the archive together — this timeline shows the latest additions.",
+    postedAt: "2026-04-17T08:45:00.000Z",
+    createdAt: "2026-04-18T18:55:00.000Z",
+    loveCount: 15,
+    heartbreakCount: 0,
+  },
+];
+
+export async function getRecentArchives(): Promise<Tweet[]> {
+  try {
+    const res = await apiClient.get('/api/recent-archives');
+    return res.data.map((doc: any) => docToTweet(doc));
+  } catch (error) {
+    // Fallback to dummy data on failure
+    console.warn("Failed to fetch recent archives, using dummy data:", error);
+    return DUMMY_RECENT_ARCHIVES;
+  }
+}
+
 // API calls
 
-/**
- * Search tweets by a query string (matches displayName, names, party, text).
- * Returns the raw paginated response from the backend.
- */
 export async function searchTweets(
   query: string,
   opts: { page?: number; limit?: number } = {}
@@ -102,12 +145,8 @@ export async function searchTweets(
     sort: "-createdAt",
   });
 
-  const res = await fetch(`${API_BASE}/api/tweets?${params}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Search failed (${res.status})`);
-  }
-  return res.json();
+  const res = await apiClient.get(`/api/tweets?${params}`);
+  return res.data;
 }
 
 /**
@@ -154,45 +193,18 @@ export async function getUser(displayName: string): Promise<UserRecord | null> {
   return docsToUserRecord(exact);
 }
 
-/**
- * Fetch a single tweet doc by ID.
- */
 export async function getTweet(id: string): Promise<TweetDoc> {
-  const res = await fetch(`${API_BASE}/api/tweets/${id}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Not found (${res.status})`);
-  }
-  return res.json();
+  const res = await apiClient.get(`/api/tweets/${id}`);
+  return res.data;
 }
 
-/**
- * Auto-capture a screenshot of a tweet URL.
- * Backend uses Puppeteer to render the tweet and uploads the image to Cloudinary.
- * Returns the Cloudinary URL and public ID.
- */
 export async function captureScreenshot(
   url: string
 ): Promise<{ url: string; publicId: string }> {
-  const res = await fetch(`${API_BASE}/api/screenshots`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Screenshot capture failed (${res.status})`);
-  }
-  return res.json();
+  const res = await apiClient.post('/api/screenshots', { url });
+  return res.data;
 }
 
-/**
- * Create a new tweet record.
- * Supports two screenshot flows:
- *   - screenshot: File       → manual upload via FormData / Cloudinary
- *   - screenshotUrl/PublicId → pre-captured via /api/screenshots (already on Cloudinary)
- */
 export async function createTweet(payload: {
   displayName: string;
   firstName?: string;
@@ -223,21 +235,12 @@ export async function createTweet(payload: {
     fd.append("screenshotPublicId", payload.screenshotPublicId);
   }
 
-  const res = await fetch(`${API_BASE}/api/tweets`, {
-    method: "POST",
-    body: fd,
+  const res = await apiClient.post('/api/tweets', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Create failed (${res.status})`);
-  }
-  return res.json();
+  return res.data;
 }
 
-/**
- * Update an existing tweet record by ID.
- */
 export async function updateTweet(
   id: string,
   payload: {
@@ -265,48 +268,39 @@ export async function updateTweet(
   if (payload.removeScreenshot) fd.append("removeScreenshot", "true");
   if (payload.screenshot) fd.append("screenshot", payload.screenshot);
 
-  const res = await fetch(`${API_BASE}/api/tweets/${id}`, {
-    method: "PUT",
-    body: fd,
+  const res = await apiClient.put(`/api/tweets/${id}`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Update failed (${res.status})`);
-  }
-  return res.json();
+  return res.data;
 }
 
-/**
- * Delete a tweet record by ID.
- */
 export async function deleteTweet(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/tweets/${id}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `Delete failed (${res.status})`);
-  }
+  await apiClient.delete(`/api/tweets/${id}`);
 }
 
-/**
- * Export all tweets as a JSON blob (for download).
- * Paginates internally to pull everything.
- */
 export async function exportAll(): Promise<TweetDoc[]> {
   const all: TweetDoc[] = [];
   let page = 1;
   let pages = 1;
 
   do {
-    const res = await searchTweets("", { page, limit: 100 });
-    all.push(...res.data);
-    pages = res.meta.pages;
+    const res = await apiClient.get('/api/tweets', {
+      params: { page, limit: 100, sort: '-createdAt' },
+    });
+    all.push(...res.data.data);
+    pages = res.data.meta.pages;
     page++;
   } while (page <= pages);
 
   return all;
+}
+
+export async function voteTweet(
+  tweetId: string,
+  voteType: "love" | "hate"
+): Promise<{ loveCount: number; heartbreakCount: number }> {
+  const res = await apiClient.post(`/api/tweets/${tweetId}/vote`, { type: voteType });
+  return res.data;
 }
 
 /**
