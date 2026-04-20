@@ -1,6 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
-
 export interface TweetDoc {
   _id: string;
   displayName: string;
@@ -32,8 +31,6 @@ interface PaginatedResponse {
     pages: number;
   };
 }
-
-
 
 export interface Tweet {
   id: string;
@@ -92,7 +89,7 @@ function docsToUserRecord(docs: TweetDoc[]): UserRecord | null {
  */
 export async function searchTweets(
   query: string,
-  opts: { page?: number; limit?: number } = {}
+  opts: { page?: number; limit?: number } = {},
 ): Promise<PaginatedResponse> {
   const params = new URLSearchParams({
     search: query,
@@ -117,9 +114,7 @@ export async function getUser(displayName: string): Promise<UserRecord | null> {
   const { data } = await searchTweets(displayName, { limit: 200 });
 
   // Filter to exact displayName match (search is fuzzy)
-  const exact = data.filter(
-    (d) => d.displayName.toLowerCase() === displayName.toLowerCase()
-  );
+  const exact = data.filter((d) => d.displayName.toLowerCase() === displayName.toLowerCase());
 
   return docsToUserRecord(exact);
 }
@@ -193,13 +188,14 @@ export async function updateTweet(
     postedOn?: string;
     screenshot?: File;
     removeScreenshot?: boolean;
-  }
+  },
 ): Promise<TweetDoc> {
   const fd = new FormData();
   if (payload.displayName !== undefined) fd.append("displayName", payload.displayName);
   if (payload.firstName !== undefined) fd.append("firstName", payload.firstName);
   if (payload.lastName !== undefined) fd.append("lastName", payload.lastName);
-  if (payload.partyAffiliation !== undefined) fd.append("partyAffiliation", payload.partyAffiliation);
+  if (payload.partyAffiliation !== undefined)
+    fd.append("partyAffiliation", payload.partyAffiliation);
   if (payload.notes !== undefined) fd.append("notes", payload.notes);
   if (payload.tweetUrl !== undefined) fd.append("tweetUrl", payload.tweetUrl);
   if (payload.tweetText !== undefined) fd.append("tweetText", payload.tweetText);
