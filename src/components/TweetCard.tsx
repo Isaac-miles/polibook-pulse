@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Tweet } from "@/lib/api";
-import { ExternalLink, ImageIcon, X } from "lucide-react";
+import { ExternalLink, Heart, HeartCrack, ImageIcon, X } from "lucide-react";
+import { useVoteTweet } from "@/hooks/useQueries";
 
 function formatDate(iso?: string) {
   if (!iso) return "Unknown date";
@@ -17,6 +18,26 @@ function formatDate(iso?: string) {
 
 export function TweetCard({ tweet }: { tweet: Tweet }) {
   const [lightbox, setLightbox] = useState(false);
+  const [voteState, setVoteState] = useState<"love" | "hate" | null>(null);
+
+  const voteMutation = useVoteTweet({
+    onSuccess: (data) => {
+      // Update local counts after successful vote
+      tweet.loveCount = data.loveCount;
+      tweet.heartbreakCount = data.heartbreakCount;
+    },
+  });
+
+  const handleVote = (type: "love" | "hate") => {
+    if (voteState === type) {
+      // Toggle off
+      setVoteState(null);
+      // Note: Backend might need to handle unvoting, but for now, just toggle locally
+    } else {
+      setVoteState(type);
+      voteMutation.mutate({ tweetId: tweet.id, voteType: type });
+    }
+  };
 
   return (
     <article className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5">
@@ -29,13 +50,14 @@ export function TweetCard({ tweet }: { tweet: Tweet }) {
         <button
           type="button"
           onClick={() => setLightbox(true)}
-          className="mt-4 block w-full overflow-hidden rounded-lg border border-border bg-muted transition-transform hover:scale-[1.01]"
+          className="mt-4 block w-full overflow-hidden rounded-lg border border-border bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           <img
             src={tweet.screenshot}
             alt="Tweet screenshot"
             className="max-h-96 w-full object-contain"
             loading="lazy"
+            style={{ backfaceVisibility: "hidden", transform: "translateZ(0)", pointerEvents: "none" }}
           />
         </button>
       )}
@@ -68,6 +90,37 @@ export function TweetCard({ tweet }: { tweet: Tweet }) {
             </a>
           )}
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-3 text-sm">
+        <button
+          type="button"
+          onClick={() => handleVote("love")}
+          disabled={voteMutation.isPending}
+          aria-pressed={voteState === "love"}
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
+            voteState === "love"
+              ? "border-emerald-400 bg-emerald-500/10 text-emerald-300"
+              : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
+          }`}
+        >
+          <Heart className={`h-4 w-4 ${voteState === "love" ? "fill-current" : ""}`} />
+          {tweet.loveCount}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleVote("hate")}
+          disabled={voteMutation.isPending}
+          aria-pressed={voteState === "hate"}
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
+            voteState === "hate"
+              ? "border-destructive bg-destructive/10 text-destructive"
+              : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
+          }`}
+        >
+          <HeartCrack className={`h-4 w-4 ${voteState === "hate" ? "fill-current" : ""}`} />
+          {tweet.heartbreakCount}
+        </button>
       </div>
 
       {lightbox && tweet.screenshot && (
