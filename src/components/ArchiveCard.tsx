@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Archive } from "@/lib/api";
-import { ExternalLink, Heart, HeartCrack, ImageIcon } from "lucide-react";
+import { ExternalLink, ThumbsUp, ThumbsDown, ImageIcon } from "lucide-react";
 import { useVoteArchive } from "@/hooks/useQueries";
 import { ScreenshotGrid } from "./ScreenshotGrid";
 
@@ -40,12 +40,26 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
 
   const screenshots = archive.screenshots || (archive.screenshot ? [archive.screenshot] : []);
 
+  const MAX_EXCERPT = 250;
+  const isLongText = !!archive.text && archive.text.length > MAX_EXCERPT;
+  const excerpt = archive.text ? (isLongText ? archive.text.slice(0, MAX_EXCERPT) : archive.text) : "";
+
   return (
     <Link to={`/archive/${archive.id}`} className="block">
       <article className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5 cursor-pointer">
         <div className="absolute inset-y-0 left-0 w-1 bg-[image:var(--gradient-hero)] opacity-80" />
+
+        {archive.displayName && (
+          <div className="mb-2 flex items-baseline gap-3">
+            <h3 className="text-sm font-semibold text-foreground">{archive.displayName}</h3>
+            {archive.username && (
+              <span className="text-xs text-muted-foreground">@{archive.username}</span>
+            )}
+          </div>
+        )}
+
         <p className="whitespace-pre-wrap pl-2 text-[15px] leading-relaxed text-card-foreground">
-          {archive.text}
+          {isLongText ? `${excerpt.trim()}…` : excerpt}
         </p>
 
         {screenshots.length > 0 && (
@@ -109,8 +123,9 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
                 ? "border-emerald-400 bg-emerald-500/10 text-emerald-300"
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
+            aria-label="Vote up"
           >
-            <Heart className={`h-4 w-4 ${voteState === "love" ? "fill-current" : ""}`} />
+            <ThumbsUp className={`h-4 w-4 ${voteState === "love" ? "fill-current" : ""}`} />
             {archive.loveCount}
           </button>
           <button
@@ -126,8 +141,9 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
                 ? "border-destructive bg-destructive/10 text-destructive"
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
+            aria-label="Vote down"
           >
-            <HeartCrack className={`h-4 w-4 ${voteState === "hate" ? "fill-current" : ""}`} />
+            <ThumbsDown className={`h-4 w-4 ${voteState === "hate" ? "fill-current" : ""}`} />
             {archive.heartbreakCount}
           </button>
         </div>

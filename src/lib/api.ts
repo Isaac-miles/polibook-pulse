@@ -49,6 +49,8 @@ export interface Archive {
   createdAt: string;
   loveCount: number;
   heartbreakCount: number;
+  displayName?: string;
+  username?: string;
 }
 
 export interface UserRecord {
@@ -80,6 +82,8 @@ function docToArchive(doc: ArchiveDoc): Archive {
     createdAt: doc.createdAt,
     loveCount: doc.loveCount || 0,
     heartbreakCount: doc.heartbreakCount || 0,
+    displayName: doc.displayName || undefined,
+    username: doc.displayName ? doc.displayName.replace(/\s+/g, "_").toLowerCase() : undefined,
   };
 }
 
@@ -102,45 +106,18 @@ function docsToUserRecord(docs: ArchiveDoc[]): UserRecord | null {
   };
 }
 
-const DUMMY_RECENT_ARCHIVES: Archive[] = [
-  {
-    id: "recent-1",
-    url: "https://twitter.com/example/status/1234567890123456789",
-    text: "A new accountability record has been added for the public archive — every voice should be visible.",
-    postedAt: "2026-04-19T14:36:00.000Z",
-    createdAt: "2026-04-20T08:20:00.000Z",
-    loveCount: 12,
-    heartbreakCount: 2,
-  },
-  {
-    id: "recent-2",
-    url: "https://twitter.com/example/status/9876543210987654321",
-    text: "Verified statement archived from a national figure with screenshot and source link.",
-    postedAt: "2026-04-18T11:10:00.000Z",
-    createdAt: "2026-04-19T21:05:00.000Z",
-    loveCount: 8,
-    heartbreakCount: 1,
-  },
-  {
-    id: "recent-3",
-    url: "https://twitter.com/example/status/1122334455667788990",
-    text: "Community members are building the archive together — this timeline shows the latest additions.",
-    postedAt: "2026-04-17T08:45:00.000Z",
-    createdAt: "2026-04-18T18:55:00.000Z",
-    loveCount: 15,
-    heartbreakCount: 0,
-  },
-];
+
 
 export async function getRecentArchives(): Promise<Archive[]> {
   try {
     const res = await apiClient.get("/api/archives/recent");
     const docs: ArchiveDoc[] = res.data;
+    if (!docs || !Array.isArray(docs) || docs.length === 0) return [];
     return docs.map((doc) => docToArchive(doc));
   } catch (error) {
-    // Fallback to dummy data on failure
-    console.warn("Failed to fetch recent archives, using dummy data:", error);
-    return DUMMY_RECENT_ARCHIVES;
+    // If the API fails, return a safe empty array instead of dummy content.
+    console.warn("Failed to fetch recent archives, returning empty array:", error);
+    return [];
   }
 }
 

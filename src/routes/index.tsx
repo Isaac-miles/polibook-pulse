@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, SubmitEventHandler, FormEvent } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ArchiveCard } from "@/components/ArchiveCard";
 import { useSearchUsers, useRecentArchives } from "@/hooks/useQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserCircle2, Plus, Loader2 } from "lucide-react";
+import { Search, UserCircle2, FileText, Loader2, Star, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,7 +43,7 @@ function Index() {
   const { data: recentArchives } = useRecentArchives();
 
   const handleSearch = useCallback(
-    (e: React.FormEvent) => {
+    (e: FormEvent) => {
       e.preventDefault();
       const q = inputValue.trim();
       if (!q) return;
@@ -66,97 +66,157 @@ function Index() {
     <div className="min-h-screen bg-[image:var(--gradient-soft)]">
       <SiteHeader />
 
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 bg-[image:var(--gradient-hero)]" />
+      <section className="relative overflow-hidden border-b border-border min-h-[620px]">
+        {/* Background image */}
         <div
-          className="absolute inset-0 opacity-[0.07]"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundImage: "url('/nassembly.png')",
+          }}
+        />
+
+        {/* Dark green gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#004d26]/95 via-[#006633]/85 to-[#0f9d58]/45" />
+
+        {/* Dot texture */}
+        <div
+          className="absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.7) 1px, transparent 0)",
             backgroundSize: "24px 24px",
           }}
         />
-        <div className="relative mx-auto max-w-5xl px-4 py-20 md:py-28">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white backdrop-blur">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-            Public record · Nigeria on the trail
+
+        {/* Soft fade */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+
+        <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-28">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.25em] text-white backdrop-blur-md">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+            Public Record · Nigeria on the trail
           </div>
-          <h1 className="mt-5 font-sans text-3xl font-bold tracking-tight text-white md:text-7xl">
-            Accountability{" "}
-            <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              archive
-            </span>
-          </h1>
-          <p className="mt-5 max-w-2xl text-base text-white/90 md:text-lg">
-            A community archive of political statements posted on X/Twitter by Nigerian public
-            figures. Search any name, party, or keyword to see what they actually said — with
-            timestamps, screenshots, and sources.
-          </p>
 
-          {/* <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <a
-              href="/upload"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4" />
-              Create archive
-            </a>
-            <p className="max-w-xl text-sm text-white/80">
-              Quickly add a new record to the archive and keep the community timeline up to date.
+          {/* Main content */}
+          <div className="mt-6 max-w-3xl">
+            <h1 className="text-5xl font-bold leading-tight text-white md:text-7xl">
+              Accountability
+              <span className="block bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
+                archive
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/90 md:text-xl">
+              A community archive of political statements posted on X/Twitter by Nigerian public
+              figures. Search any name, party, or keyword to see what they actually said — with
+              timestamps, screenshots, and sources.
             </p>
-          </div> */}
+          </div>
 
+          {/* Search bar */}
           <form
             onSubmit={handleSearch}
-            className="mt-4 flex flex-col gap-2 rounded-2xl bg-card p-2 shadow-[var(--shadow-elevated)] sm:flex-row"
+            className="mt-10 flex flex-col gap-3 rounded-3xl bg-white/95 p-3 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:rounded-full"
           >
-            <div className="flex flex-1 items-center gap-2 px-4">
-              <Search className="h-4 w-4 text-muted-foreground" />
+            {/* Input */}
+            <div className="flex w-full items-center gap-3 px-4 py-3 sm:flex-1 sm:px-6 sm:py-2">
+              <Search className="h-5 w-5 text-muted-foreground" />
+
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Search by name, party, or keyword…"
-                className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
+                placeholder="Search by name, party, or keyword..."
+                className="border-0 bg-transparent text-base shadow-none focus-visible:ring-0 placeholder:text-muted-foreground sm:text-lg"
               />
             </div>
-            <Button type="submit" size="lg" className="shrink-0" disabled={isLoading}>
+
+            {/* Button */}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-2xl bg-green-700 py-4 text-base font-semibold hover:bg-green-800 sm:w-auto sm:rounded-full sm:px-8 sm:py-6"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Searching…
+                  Searching...
                 </>
               ) : (
                 "Search archive"
               )}
             </Button>
           </form>
+
+          {/* Feature pills */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            {["Timestamps", "Screenshots", "Sources", "Community verified"].map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-md"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
       <main className="mx-auto max-w-5xl px-4 py-12">
         {/* Recent timeline on home page */}
         {!searched && (
-          <div className="rounded-3xl border border-border bg-card/90 p-6 shadow-[var(--shadow-soft)] backdrop-blur-lg">
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
-                  Community timeline
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-foreground">
-                  Recently added archives
-                </h2>
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/70 p-8 shadow-2xl backdrop-blur-xl">
+            {/* subtle gradient glow */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-green-100/40 via-transparent to-emerald-200/30" />
+
+            {/* content */}
+            <div className="relative">
+              <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                {/* left */}
+                <div className="flex items-start gap-4">
+                  <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-green-600 to-emerald-500 text-white shadow-lg">
+                    <FileText className="h-5 w-5" />
+
+                    {/* small star accent */}
+                    <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-green-600 shadow">
+                      <Star className="h-3 w-3 fill-green-600" />
+                    </span>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                      Community timeline
+                    </p>
+
+                    <h2 className="mt-1 text-xl font-semibold text-foreground">
+                      Recently added archives
+                    </h2>
+
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Browse the latest political statements added by the community.
+                    </p>
+                  </div>
+                </div>
+
+                {/* right CTA */}
+                <a
+                  href="/upload"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add archive
+                </a>
               </div>
-              {/* <a
-                href="/upload"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-              >
-                <Plus className="h-4 w-4" />
-                Add new archive
-              </a> */}
-            </div>
-            <div className="space-y-4">
-              {recentArchives?.map((archive) => (
-                <ArchiveCard key={archive.id} archive={archive} />
-              ))}
+
+              {/* divider */}
+              <div className="mb-6 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent"></div>
+
+              {/* list */}
+              <div className="space-y-4">
+                {recentArchives?.map((archive) => (
+                  <ArchiveCard archive={archive} />
+                ))}
+              </div>
             </div>
           </div>
         )}

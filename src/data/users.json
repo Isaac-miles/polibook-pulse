@@ -1,28 +1,3 @@
 {
-  "users": [
-    {
-      "username": "sample_user",
-      "displayName": "Sample User",
-      "firstName": "Jane",
-      "lastName": "Doe",
-      "party": "Independent",
-      "notes": "Example record. Replace with real data via the Upload page.",
-      "tweets": [
-        {
-          "id": "t1",
-          "url": "https://twitter.com/sample_politician/status/1",
-          "text": "We will lower taxes for every working family if elected. That is a promise.",
-          "postedAt": "2024-09-12T14:32:00Z",
-          "submittedAt": "2024-09-13T09:00:00Z"
-        },
-        {
-          "id": "t2",
-          "url": "https://twitter.com/sample_politician/status/2",
-          "text": "Today I voted in support of the new infrastructure bill.",
-          "postedAt": "2025-01-04T18:10:00Z",
-          "submittedAt": "2025-01-05T07:22:00Z"
-        }
-      ]
-    }
-  ]
+  "users": []
 }
