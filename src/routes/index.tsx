@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { TweetCard } from "@/components/TweetCard";
+import { ArchiveCard } from "@/components/ArchiveCard";
 import { useSearchUsers, useRecentArchives } from "@/hooks/useQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,7 @@ function Index() {
     [inputValue, activeQuery, refetch],
   );
 
-  const totalTweets = users?.reduce((sum, u) => sum + u.tweets.length, 0) ?? 0;
+  const totalArchives = users?.reduce((sum, u) => sum + (u.archives?.length ?? 0), 0) ?? 0;
 
   return (
     <div className="min-h-screen bg-[image:var(--gradient-soft)]">
@@ -138,8 +138,12 @@ function Index() {
           <div className="rounded-3xl border border-border bg-card/90 p-6 shadow-[var(--shadow-soft)] backdrop-blur-lg">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">Community timeline</p>
-                <h2 className="mt-2 text-2xl font-semibold text-foreground">Recently added archives</h2>
+                <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
+                  Community timeline
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-foreground">
+                  Recently added archives
+                </h2>
               </div>
               {/* <a
                 href="/upload"
@@ -150,8 +154,8 @@ function Index() {
               </a> */}
             </div>
             <div className="space-y-4">
-              {recentArchives?.map((tweet) => (
-                <TweetCard key={tweet.id} tweet={tweet} />
+              {recentArchives?.map((archive) => (
+                <ArchiveCard key={archive.id} archive={archive} />
               ))}
             </div>
           </div>
@@ -203,7 +207,7 @@ function Index() {
             <p className="text-sm text-muted-foreground">
               Found{" "}
               <strong className="text-foreground">
-                {totalTweets} tweet{totalTweets !== 1 ? "s" : ""}
+                {totalArchives} archive{totalArchives !== 1 ? "s" : ""}
               </strong>{" "}
               across{" "}
               <strong className="text-foreground">
@@ -236,8 +240,8 @@ function Index() {
                         </span>
                       )}
                       <span>
-                        <span className="font-medium text-foreground/70">Tweets archived:</span>{" "}
-                        {user.tweets.length}
+                        <span className="font-medium text-foreground/70">Archives archived:</span>{" "}
+                        {user.archives.length}
                       </span>
                     </div>
                     {user.notes && (
@@ -246,14 +250,14 @@ function Index() {
                   </div>
                 </div>
 
-                {/* Tweet list */}
+                {/* archive list */}
                 <div>
                   <h3 className="mb-4 font-display text-lg font-semibold">
-                    Archived statements ({user.tweets.length})
+                    Archived statements ({user.archives.length})
                   </h3>
                   <div className="space-y-3">
-                    {user.tweets.map((t) => (
-                      <TweetCard key={t.id} tweet={t} />
+                    {user.archives.map((t) => (
+                      <ArchiveCard key={t.id} archive={t} />
                     ))}
                   </div>
                 </div>
