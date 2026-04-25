@@ -4,9 +4,9 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { ScreenshotGrid } from "@/components/ScreenshotGrid";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useGetTweet } from "@/hooks/useQueries";
+import { useGetArchive } from "@/hooks/useQueries";
 import { type ScreenshotInfo } from "@/lib/api";
-import { ExternalLink, Heart, HeartCrack, Loader2, MessageCircle } from "lucide-react";
+import { ExternalLink, Heart, HeartCrack, Loader2, MessageCircle, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -37,7 +37,7 @@ function formatDate(iso?: string) {
 }
 
 function ArchiveDetailsPage() {
-  const { tweetId } = Route.useParams();
+  const { tweetId: archiveId } = Route.useParams();
   const [comment, setComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
@@ -53,7 +53,7 @@ function ArchiveDetailsPage() {
     },
   ]);
 
-  const { data: tweet, isLoading, error } = useGetTweet(tweetId);
+  const { data: archive, isLoading, error } = useGetArchive(archiveId);
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +91,7 @@ function ArchiveDetailsPage() {
     );
   }
 
-  if (error || !tweet) {
+  if (error || !archive) {
     return (
       <div className="min-h-screen bg-background">
         <Toaster richColors position="top-center" />
@@ -106,8 +106,11 @@ function ArchiveDetailsPage() {
   }
 
   // Get screenshots from new format or fall back to old format
-  const screenshots = ((tweet.screenshots || []).map((s: ScreenshotInfo) => s.url) ||
-    (tweet.screenshot?.url ? [tweet.screenshot.url] : [])) as string[];
+  const screenshots = archive.screenshots
+    ? (archive.screenshots as ScreenshotInfo[]).map((s) => s.url)
+    : archive.screenshot?.url
+      ? [archive.screenshot.url]
+      : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,32 +118,41 @@ function ArchiveDetailsPage() {
       <SiteHeader />
 
       <main className="mx-auto max-w-4xl px-4 py-12">
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => window.history.back()}
+            className="inline-flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" /> Back
+          </Button>
+        </div>
         {/* Archive Details Card */}
         <article className="rounded-xl border border-border bg-card p-8 shadow-[var(--shadow-soft)]">
           <div className="mb-6 border-b border-border pb-6">
-            <h1 className="text-2xl font-bold text-foreground">{tweet.displayName}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{archive.displayName}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {tweet.partyAffiliation && <span>{tweet.partyAffiliation} • </span>}
-              Archived {formatDate(tweet.createdAt)}
+              {archive.partyAffiliation && <span>{archive.partyAffiliation} • </span>}
+              Archived {formatDate(archive.createdAt)}
             </p>
           </div>
 
           {/* User Info */}
-          {(tweet.firstName || tweet.lastName || tweet.notes) && (
+          {(archive.firstName || archive.lastName || archive.notes) && (
             <div className="mb-6 space-y-2 rounded-lg bg-muted/30 p-4">
-              {tweet.firstName && (
+              {archive.firstName && (
                 <p className="text-sm">
-                  <span className="font-medium">First Name:</span> {tweet.firstName}
+                  <span className="font-medium">First Name:</span> {archive.firstName}
                 </p>
               )}
-              {tweet.lastName && (
+              {archive.lastName && (
                 <p className="text-sm">
-                  <span className="font-medium">Last Name:</span> {tweet.lastName}
+                  <span className="font-medium">Last Name:</span> {archive.lastName}
                 </p>
               )}
-              {tweet.notes && (
+              {archive.notes && (
                 <p className="text-sm">
-                  <span className="font-medium">Notes:</span> {tweet.notes}
+                  <span className="font-medium">Notes:</span> {archive.notes}
                 </p>
               )}
             </div>
@@ -149,7 +161,7 @@ function ArchiveDetailsPage() {
           {/* Tweet Text */}
           <div className="mb-6">
             <p className="whitespace-pre-wrap text-base leading-relaxed text-card-foreground">
-              {tweet.tweetText}
+              {archive.tweetText}
             </p>
           </div>
 
@@ -165,17 +177,17 @@ function ArchiveDetailsPage() {
 
           {/* Metadata */}
           <div className="mb-6 space-y-2 border-t border-border pt-6 text-sm text-muted-foreground">
-            {tweet.postedOn && (
+            {archive.postedOn && (
               <p>
                 <span className="font-medium text-foreground/70">Originally posted:</span>{" "}
-                {formatDate(tweet.postedOn)}
+                {formatDate(archive.postedOn)}
               </p>
             )}
-            {tweet.tweetUrl && (
+            {archive.tweetUrl && (
               <p>
                 <span className="font-medium text-foreground/70">Source:</span>{" "}
                 <a
-                  href={tweet.tweetUrl}
+                  href={archive.tweetUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-primary hover:underline"
@@ -190,11 +202,11 @@ function ArchiveDetailsPage() {
           <div className="flex flex-wrap gap-3 border-t border-border pt-6">
             <Button variant="outline" size="sm" className="gap-2">
               <Heart className="h-4 w-4" />
-              {tweet.loveCount} Love this
+              {archive.loveCount} Love this
             </Button>
             <Button variant="outline" size="sm" className="gap-2">
               <HeartCrack className="h-4 w-4" />
-              {tweet.heartbreakCount} Heartbreak
+              {archive.heartbreakCount} Heartbreak
             </Button>
           </div>
         </article>

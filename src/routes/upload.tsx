@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { downloadJSON, type UserRecord, type TweetDoc } from "@/lib/api";
-import { useGetUser, useCreateTweet, useExportAll } from "@/hooks/useQueries";
+import { downloadJSON, type UserRecord, type ArchiveDoc } from "@/lib/api";
+import { useGetUser, useCreateArchive, useExportAll } from "@/hooks/useQueries";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Download, Loader2, X, Plus } from "lucide-react";
@@ -14,15 +14,15 @@ import { Download, Loader2, X, Plus } from "lucide-react";
 export const Route = createFileRoute("/upload")({
   head: () => ({
     meta: [
-      { title: "Upload a tweet — Trail" },
+      { title: "Upload to archive — Trail" },
       {
         name: "description",
-        content: "Add a politician and archive a tweet to the public accountability record.",
+        content: "Add a politician and archive a statement to the public accountability record.",
       },
-      { property: "og:title", content: "Upload a tweet — Trail" },
+      { property: "og:title", content: "Upload to archive — Trail" },
       {
         property: "og:description",
-        content: "Add a politician and archive a tweet to the public accountability record.",
+        content: "Add a politician and archive a statement to the public accountability record.",
       },
     ],
   }),
@@ -40,7 +40,7 @@ function UploadPage() {
   const [party, setParty] = useState("");
   const [notes, setNotes] = useState("");
 
-  // tweet fields
+  // archive/tweet fields
   const [tweetUrl, setTweetUrl] = useState("");
   const [tweetText, setTweetText] = useState("");
   const [postedAt, setPostedAt] = useState("");
@@ -57,15 +57,15 @@ function UploadPage() {
 
   const router = useRouter();
 
-  const createTweetMutation = useCreateTweet({
-    onSuccess: (newTweet: TweetDoc) => {
+  const createArchiveMutation = useCreateArchive({
+    onSuccess: (newArchive: ArchiveDoc) => {
       // Reset tweet fields only (keep user context)
       setTweetUrl("");
       setTweetText("");
       setPostedAt("");
       setScreenshotFiles([]);
       setScreenshotPreviews([]);
-      toast.success("Tweet archived successfully");
+      toast.success("Archived successfully");
       router.navigate({ to: "/" });
     },
     onError: (err: Error) => {
@@ -150,7 +150,7 @@ function UploadPage() {
       return toast.error("Display name is required for new users");
     }
 
-    createTweetMutation.mutate({
+    createArchiveMutation.mutate({
       displayName: effectiveDisplayName,
       firstName: (foundUser?.firstName ?? firstName) || undefined,
       lastName: (foundUser?.lastName ?? lastName) || undefined,
@@ -181,9 +181,9 @@ function UploadPage() {
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-12">
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold">Archive a tweet</h1>
+          <h1 className="font-display text-3xl font-bold">Add to archive</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter a display name. If they're already in the archive, paste their tweet. If not,
+            Enter a display name. If they're already in the archive, paste their statement. If not,
             you'll add their basic info first.
           </p>
         </div>
@@ -374,8 +374,8 @@ function UploadPage() {
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-3">
-                <Button type="submit" size="lg" disabled={createTweetMutation.isPending}>
-                  {createTweetMutation.isPending ? (
+                <Button type="submit" size="lg" disabled={createArchiveMutation.isPending}>
+                  {createArchiveMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving…

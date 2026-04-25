@@ -1,28 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  searchTweets,
+  searchArchives,
   searchUsers,
   getUser,
-  getTweet,
-  createTweet,
-  updateTweet,
-  deleteTweet,
+  getArchive,
+  createArchive,
+  updateArchive,
+  deleteArchive,
   exportAll,
   captureScreenshot,
   getRecentArchives,
-  voteTweet,
-  type TweetDoc,
+  voteArchive,
+  type ArchiveDoc,
   type UserRecord,
-  Tweet,
+  Archive,
 } from "../lib/api";
 
 // Query keys
 export const queryKeys = {
-  tweets: {
-    all: ["tweets"] as const,
+  archives: {
+    all: ["archives"] as const,
     search: (query: string, page?: number, limit?: number) =>
-      ["tweets", "search", query, page, limit] as const,
-    detail: (id: string) => ["tweets", "detail", id] as const,
+      ["archives", "search", query, page, limit] as const,
+    detail: (id: string) => ["archives", "detail", id] as const,
   },
   users: {
     all: ["users"] as const,
@@ -47,15 +47,16 @@ export function useSearchUsers(query: string, options?: Record<string, unknown>)
 }
 
 // ---- Search Tweets Query ----
-export function useSearchTweets(
+// ---- Search Archives Query ----
+export function useSearchArchives(
   query: string,
   page = 1,
   limit = 100,
   options?: Record<string, unknown>,
 ) {
   return useQuery({
-    queryKey: queryKeys.tweets.search(query, page, limit),
-    queryFn: () => searchTweets(query, { page, limit }),
+    queryKey: queryKeys.archives.search(query, page, limit),
+    queryFn: () => searchArchives(query, { page, limit }),
     enabled: query.length > 0,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
@@ -76,10 +77,10 @@ export function useGetUser(displayName: string, options?: Record<string, unknown
 }
 
 // ---- Get Tweet Detail ----
-export function useGetTweet(id: string, options?: Record<string, unknown>) {
+export function useGetArchive(id: string, options?: Record<string, unknown>) {
   return useQuery({
-    queryKey: queryKeys.tweets.detail(id),
-    queryFn: () => getTweet(id),
+    queryKey: queryKeys.archives.detail(id),
+    queryFn: () => getArchive(id),
     enabled: id.length > 0,
     staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -99,38 +100,38 @@ export function useRecentArchives(options?: Record<string, unknown>) {
 }
 
 // ---- Vote on Tweet Mutation ----
-export function useVoteTweet(options?: Record<string, unknown>) {
+export function useVoteArchive(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ tweetId, voteType }: { tweetId: string; voteType: "love" | "hate" }) =>
-      voteTweet(tweetId, voteType),
+    mutationFn: ({ archiveId, voteType }: { archiveId: string; voteType: "love" | "hate" }) =>
+      voteArchive(archiveId, voteType),
     onSuccess: (data, variables) => {
       // Update the cache for recent archives
       queryClient.setQueryData(["recent-archives"], (oldData: unknown) => {
         if (!oldData || !Array.isArray(oldData)) return oldData;
-        return oldData.map((tweet: Tweet) =>
-          tweet.id === variables.tweetId
-            ? { ...tweet, loveCount: data.loveCount, heartbreakCount: data.heartbreakCount }
-            : tweet,
+        return oldData.map((archive: Archive) =>
+          archive.id === (variables as any).archiveId
+            ? { ...archive, loveCount: data.loveCount, heartbreakCount: data.heartbreakCount }
+            : archive,
         );
       });
       // Also invalidate search results if needed
-      queryClient.invalidateQueries({ queryKey: queryKeys.tweets.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.archives.all });
     },
     ...options,
   });
 }
 
 // ---- Create Tweet Mutation ----
-export function useCreateTweet(options?: Record<string, unknown>) {
+export function useCreateArchive(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createTweet,
+    mutationFn: createArchive,
     onSuccess: (...args: unknown[]) => {
       // Nuke all cached search/user data so next search is fresh
-      queryClient.invalidateQueries({ queryKey: queryKeys.tweets.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.archives.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       // Also remove stale cache entries entirely for searches
       queryClient.removeQueries({ queryKey: queryKeys.users.search("") });
@@ -150,11 +151,11 @@ export function useUpdateTweet(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof updateTweet>[1] }) =>
-      updateTweet(id, payload),
-    onSuccess: (data: TweetDoc) => {
-      queryClient.setQueryData(queryKeys.tweets.detail(data._id), data);
-      queryClient.invalidateQueries({ queryKey: queryKeys.tweets.all });
+    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof updateArchive>[1] }) =>
+      updateArchive(id, payload),
+    onSuccess: (data: ArchiveDoc) => {
+      queryClient.setQueryData(queryKeys.archives.detail(data._id), data);
+      queryClient.invalidateQueries({ queryKey: queryKeys.archives.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
     },
     ...options,
@@ -166,9 +167,9 @@ export function useDeleteTweet(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteTweet,
+    mutationFn: deleteArchive,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tweets.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.archives.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
     },
     ...options,
@@ -200,7 +201,7 @@ export function useCachedUser(displayName: string) {
   return queryClient.getQueryData<UserRecord>(queryKeys.users.detail(displayName));
 }
 
-export function useCachedTweet(id: string) {
+export function useCachedArchive(id: string) {
   const queryClient = useQueryClient();
-  return queryClient.getQueryData<TweetDoc>(queryKeys.tweets.detail(id));
+  return queryClient.getQueryData<ArchiveDoc>(queryKeys.archives.detail(id));
 }

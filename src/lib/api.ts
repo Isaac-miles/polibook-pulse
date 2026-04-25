@@ -9,7 +9,7 @@ export interface ScreenshotInfo {
   publicId: string;
 }
 
-export interface TweetDoc {
+export interface ArchiveDoc {
   _id: string;
   displayName: string;
   firstName: string;
@@ -39,7 +39,7 @@ export interface PaginatedResponse {
 
 // ---- Frontend shape (grouped by user) ------------------------------------
 
-export interface Tweet {
+export interface Archive {
   id: string;
   url: string;
   text: string;
@@ -58,11 +58,11 @@ export interface UserRecord {
   lastName?: string;
   party?: string;
   notes?: string;
-  tweets: Tweet[];
+  archives: Archive[];
 }
 
-/** Turn a flat backend doc into the frontend Tweet shape. */
-function docToTweet(doc: TweetDoc): Tweet {
+/** Turn a flat backend doc into the frontend Archive shape. */
+function docToArchive(doc: ArchiveDoc): Archive {
   // Handle both old (single screenshot) and new (multiple screenshots) formats
   const screenshots = doc.screenshots
     ? doc.screenshots.map((s) => s.url)
@@ -87,7 +87,7 @@ function docToTweet(doc: TweetDoc): Tweet {
  * Group an array of flat tweet docs (all for the same displayName) into a
  * single UserRecord.  If the array is empty, returns null.
  */
-function docsToUserRecord(docs: TweetDoc[]): UserRecord | null {
+function docsToUserRecord(docs: ArchiveDoc[]): UserRecord | null {
   if (docs.length === 0) return null;
 
   const first = docs[0];
@@ -98,11 +98,11 @@ function docsToUserRecord(docs: TweetDoc[]): UserRecord | null {
     lastName: first.lastName || undefined,
     party: first.partyAffiliation || undefined,
     notes: first.notes || undefined,
-    tweets: docs.map(docToTweet),
+    archives: docs.map(docToArchive),
   };
 }
 
-const DUMMY_RECENT_ARCHIVES: Tweet[] = [
+const DUMMY_RECENT_ARCHIVES: Archive[] = [
   {
     id: "recent-1",
     url: "https://twitter.com/example/status/1234567890123456789",
@@ -132,11 +132,11 @@ const DUMMY_RECENT_ARCHIVES: Tweet[] = [
   },
 ];
 
-export async function getRecentArchives(): Promise<Tweet[]> {
+export async function getRecentArchives(): Promise<Archive[]> {
   try {
     const res = await apiClient.get("/api/recent-archives");
-    const docs: TweetDoc[] = res.data;
-    return docs.map((doc) => docToTweet(doc));
+    const docs: ArchiveDoc[] = res.data;
+    return docs.map((doc) => docToArchive(doc));
   } catch (error) {
     // Fallback to dummy data on failure
     console.warn("Failed to fetch recent archives, using dummy data:", error);
@@ -146,7 +146,7 @@ export async function getRecentArchives(): Promise<Tweet[]> {
 
 // API calls
 
-export async function searchTweets(
+export async function searchArchives(
   query: string,
   opts: { page?: number; limit?: number } = {},
 ): Promise<PaginatedResponse> {
@@ -164,8 +164,8 @@ export async function searchTweets(
 /**
  * Group an array of docs into multiple UserRecords keyed by displayName.
  */
-function groupByUser(docs: TweetDoc[]): UserRecord[] {
-  const map = new Map<string, TweetDoc[]>();
+function groupByUser(docs: ArchiveDoc[]): UserRecord[] {
+  const map = new Map<string, ArchiveDoc[]>();
 
   for (const doc of docs) {
     const key = doc.displayName.toLowerCase();
@@ -176,7 +176,7 @@ function groupByUser(docs: TweetDoc[]): UserRecord[] {
 
   const users: UserRecord[] = [];
   for (const group of map.values()) {
-    const record = docsToUserRecord(group);
+    const record = docsToUserRecord(group as ArchiveDoc[]);
     if (record) users.push(record);
   }
   return users;
@@ -187,7 +187,7 @@ function groupByUser(docs: TweetDoc[]): UserRecord[] {
  * Searches across displayName, firstName, lastName, party, notes, tweetText.
  */
 export async function searchUsers(query: string): Promise<UserRecord[]> {
-  const { data } = await searchTweets(query, { limit: 200 });
+  const { data } = await searchArchives(query, { limit: 200 });
   return groupByUser(data);
 }
 
@@ -196,14 +196,14 @@ export async function searchUsers(query: string): Promise<UserRecord[]> {
  * Used by the upload page to check if a user already exists.
  */
 export async function getUser(displayName: string): Promise<UserRecord | null> {
-  const { data } = await searchTweets(displayName, { limit: 200 });
+  const { data } = await searchArchives(displayName, { limit: 200 });
 
   const exact = data.filter((d) => d.displayName.toLowerCase() === displayName.toLowerCase());
 
   return docsToUserRecord(exact);
 }
 
-export async function getTweet(id: string): Promise<TweetDoc> {
+export async function getArchive(id: string): Promise<ArchiveDoc> {
   const res = await apiClient.get(`/api/tweets/${id}`);
   return res.data;
 }
@@ -213,7 +213,7 @@ export async function captureScreenshot(url: string): Promise<{ url: string; pub
   return res.data;
 }
 
-export async function createTweet(payload: {
+export async function createArchive(payload: {
   displayName: string;
   firstName?: string;
   lastName?: string;
@@ -226,7 +226,7 @@ export async function createTweet(payload: {
   screenshots?: File[];
   screenshotUrl?: string;
   screenshotPublicId?: string;
-}): Promise<TweetDoc> {
+}): Promise<ArchiveDoc> {
   const fd = new FormData();
   fd.append("displayName", payload.displayName);
   fd.append("firstName", payload.firstName ?? "");
@@ -254,7 +254,7 @@ export async function createTweet(payload: {
   return res.data;
 }
 
-export async function updateTweet(
+export async function updateArchive(
   id: string,
   payload: {
     displayName?: string;
@@ -270,7 +270,7 @@ export async function updateTweet(
     removeScreenshot?: boolean;
     removeScreenshots?: boolean;
   },
-): Promise<TweetDoc> {
+): Promise<ArchiveDoc> {
   const fd = new FormData();
   if (payload.displayName !== undefined) fd.append("displayName", payload.displayName);
   if (payload.firstName !== undefined) fd.append("firstName", payload.firstName);
@@ -297,12 +297,12 @@ export async function updateTweet(
   return res.data;
 }
 
-export async function deleteTweet(id: string): Promise<void> {
+export async function deleteArchive(id: string): Promise<void> {
   await apiClient.delete(`/api/tweets/${id}`);
 }
 
-export async function exportAll(): Promise<TweetDoc[]> {
-  const all: TweetDoc[] = [];
+export async function exportAll(): Promise<ArchiveDoc[]> {
+  const all: ArchiveDoc[] = [];
   let page = 1;
   let pages = 1;
 
@@ -318,11 +318,11 @@ export async function exportAll(): Promise<TweetDoc[]> {
   return all;
 }
 
-export async function voteTweet(
-  tweetId: string,
+export async function voteArchive(
+  archiveId: string,
   voteType: "love" | "hate",
 ): Promise<{ loveCount: number; heartbreakCount: number }> {
-  const res = await apiClient.post(`/api/tweets/${tweetId}/vote`, { type: voteType });
+  const res = await apiClient.post(`/api/tweets/${archiveId}/vote`, { type: voteType });
   return res.data;
 }
 
