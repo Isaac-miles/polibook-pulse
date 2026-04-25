@@ -6,7 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useGetArchive } from "@/hooks/useQueries";
 import { type ScreenshotInfo } from "@/lib/api";
-import { ExternalLink, ThumbsUp, ThumbsDown, Loader2, MessageCircle, ChevronLeft } from "lucide-react";
+import {
+  ExternalLink,
+  ThumbsUp,
+  ThumbsDown,
+  Loader2,
+  MessageCircle,
+  ChevronLeft,
+} from "lucide-react";
 import { useVoteArchive } from "@/hooks/useQueries";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
