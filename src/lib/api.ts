@@ -134,7 +134,7 @@ const DUMMY_RECENT_ARCHIVES: Archive[] = [
 
 export async function getRecentArchives(): Promise<Archive[]> {
   try {
-    const res = await apiClient.get("/api/recent-archives");
+    const res = await apiClient.get("/api/archives/recent");
     const docs: ArchiveDoc[] = res.data;
     return docs.map((doc) => docToArchive(doc));
   } catch (error) {
@@ -157,7 +157,7 @@ export async function searchArchives(
     sort: "-createdAt",
   });
 
-  const res = await apiClient.get(`/api/tweets?${params}`);
+  const res = await apiClient.get(`/api/archives?${params}`);
   return res.data;
 }
 
@@ -204,7 +204,7 @@ export async function getUser(displayName: string): Promise<UserRecord | null> {
 }
 
 export async function getArchive(id: string): Promise<ArchiveDoc> {
-  const res = await apiClient.get(`/api/tweets/${id}`);
+  const res = await apiClient.get(`/api/archives/${id}`);
   return res.data;
 }
 
@@ -248,7 +248,7 @@ export async function createArchive(payload: {
     fd.append("screenshotPublicId", payload.screenshotPublicId);
   }
 
-  const res = await apiClient.post("/api/tweets", fd, {
+  const res = await apiClient.post("/api/archives", fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;
@@ -291,14 +291,14 @@ export async function updateArchive(
     fd.append("screenshot", payload.screenshot);
   }
 
-  const res = await apiClient.put(`/api/tweets/${id}`, fd, {
+  const res = await apiClient.put(`/api/archives/${id}`, fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;
 }
 
 export async function deleteArchive(id: string): Promise<void> {
-  await apiClient.delete(`/api/tweets/${id}`);
+  await apiClient.delete(`/api/archives/${id}`);
 }
 
 export async function exportAll(): Promise<ArchiveDoc[]> {
@@ -307,7 +307,7 @@ export async function exportAll(): Promise<ArchiveDoc[]> {
   let pages = 1;
 
   do {
-    const res = await apiClient.get("/api/tweets", {
+    const res = await apiClient.get("/api/archives", {
       params: { page, limit: 100, sort: "-createdAt" },
     });
     all.push(...res.data.data);
@@ -322,7 +322,7 @@ export async function voteArchive(
   archiveId: string,
   voteType: "love" | "hate",
 ): Promise<{ loveCount: number; heartbreakCount: number }> {
-  const res = await apiClient.post(`/api/tweets/${archiveId}/vote`, { type: voteType });
+  const res = await apiClient.post(`/api/archives/${archiveId}/vote`, { type: voteType });
   return res.data;
 }
 
