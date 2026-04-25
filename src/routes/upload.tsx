@@ -5,24 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { downloadJSON, type UserRecord, type TweetDoc } from "@/lib/api";
-import { useGetUser, useCreateTweet, useExportAll } from "@/hooks/useQueries";
+import { downloadJSON, type UserRecord, type ArchiveDoc } from "@/lib/api";
+import { useGetUser, useCreateArchive, useExportAll } from "@/hooks/useQueries";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, X, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
     meta: [
-      { title: "Upload a tweet — Trail" },
+      { title: "Upload to archive — Trail" },
       {
         name: "description",
-        content: "Add a politician and archive a tweet to the public accountability record.",
+        content: "Add a politician and archive a statement to the public accountability record.",
       },
-      { property: "og:title", content: "Upload a tweet — Trail" },
+      { property: "og:title", content: "Upload to archive — Trail" },
       {
         property: "og:description",
-        content: "Add a politician and archive a tweet to the public accountability record.",
+        content: "Add a politician and archive a statement to the public accountability record.",
       },
     ],
   }),
@@ -40,12 +40,15 @@ function UploadPage() {
   const [party, setParty] = useState("");
   const [notes, setNotes] = useState("");
 
-  // tweet fields
+  // archive/tweet fields
   const [tweetUrl, setTweetUrl] = useState("");
   const [tweetText, setTweetText] = useState("");
   const [postedAt, setPostedAt] = useState("");
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | undefined>(undefined);
+  const [screenshotFiles, setScreenshotFiles] = useState<File[]>([]);
+  const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
+
+  const MAX_SCREENSHOTS = 8;
+  const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 
   // Use React Query hooks
   const { data: foundUser, isLoading: checking } = useGetUser(checked ? username : "", {
@@ -54,15 +57,15 @@ function UploadPage() {
 
   const router = useRouter();
 
-  const createTweetMutation = useCreateTweet({
-    onSuccess: (newTweet: TweetDoc) => {
+  const createArchiveMutation = useCreateArchive({
+    onSuccess: (newArchive: ArchiveDoc) => {
       // Reset tweet fields only (keep user context)
       setTweetUrl("");
       setTweetText("");
       setPostedAt("");
-      setScreenshotFile(null);
-      setScreenshotPreview(undefined);
-      toast.success("Tweet archived successfully");
+      setScreenshotFiles([]);
+      setScreenshotPreviews([]);
+      toast.success("Archived successfully");
       router.navigate({ to: "/" });
     },
     onError: (err: Error) => {
@@ -82,26 +85,49 @@ function UploadPage() {
   // Show toast when user is found
   useEffect(() => {
     if (checked && !checking && foundUser) {
-      toast.success(`Found ${foundUser.displayName} — ${foundUser.tweets.length} tweet(s)`);
+      toast.success(`Found ${foundUser.displayName} — ${foundUser.archives.length} archive(s)`);
     } else if (checked && !checking && !foundUser) {
       toast.message("New user — fill in their info below");
     }
   }, [checked, checking, foundUser]);
 
-  const handleScreenshot = (file: File | null) => {
-    if (!file) {
-      setScreenshotFile(null);
-      setScreenshotPreview(undefined);
-      return;
+  const handleScreenshots = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const newFiles: File[] = [];
+    const newPreviews: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      // Check for max file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`"${file.name}" is too large — maximum 4 MB per image`);
+        continue;
+      }
+
+      // Check for max number of files
+      if (screenshotFiles.length + newFiles.length >= MAX_SCREENSHOTS) {
+        toast.error(`Maximum ${MAX_SCREENSHOTS} screenshots allowed`);
+        break;
+      }
+
+      newFiles.push(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setScreenshotPreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
     }
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Image too large — maximum 4 MB");
-      return;
-    }
-    setScreenshotFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setScreenshotPreview(reader.result as string);
-    reader.readAsDataURL(file);
+
+    setScreenshotFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const removeScreenshot = (index: number) => {
+    setScreenshotFiles((prev) => prev.filter((_, i) => i !== index));
+    setScreenshotPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleCheck = async () => {
@@ -116,7 +142,7 @@ function UploadPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return toast.error("Display name is required");
-    if (!tweetText.trim()) return toast.error("Tweet text is required");
+    if (!tweetText.trim()) return toast.error("Statement text is required");
 
     const effectiveDisplayName = foundUser ? foundUser.displayName : displayName.trim();
 
@@ -124,7 +150,7 @@ function UploadPage() {
       return toast.error("Display name is required for new users");
     }
 
-    createTweetMutation.mutate({
+    createArchiveMutation.mutate({
       displayName: effectiveDisplayName,
       firstName: (foundUser?.firstName ?? firstName) || undefined,
       lastName: (foundUser?.lastName ?? lastName) || undefined,
@@ -133,7 +159,7 @@ function UploadPage() {
       tweetUrl: tweetUrl || undefined,
       tweetText,
       postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
-      screenshot: screenshotFile ?? undefined,
+      screenshots: screenshotFiles.length > 0 ? screenshotFiles : undefined,
     });
   };
 
@@ -155,9 +181,9 @@ function UploadPage() {
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-12">
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold">Archive a tweet</h1>
+          <h1 className="font-display text-3xl font-bold">Add to archive</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter a display name. If they're already in the archive, paste their tweet. If not,
+            Enter a display name. If they're already in the archive, paste their statement. If not,
             you'll add their basic info first.
           </p>
         </div>
@@ -184,8 +210,7 @@ function UploadPage() {
               <p className="mt-3 text-sm text-foreground">
                 ✓ Existing user: <strong>{foundUser.displayName}</strong>{" "}
                 <span className="text-muted-foreground">
-                  ({foundUser.tweets.length} tweet
-                  {foundUser.tweets.length !== 1 ? "s" : ""})
+                  ({foundUser.archives.length} archive{foundUser.archives.length !== 1 ? "s" : ""})
                 </span>
               </p>
             )}
@@ -260,10 +285,10 @@ function UploadPage() {
 
               {/* Tweet fields */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-                <h2 className="font-display text-lg font-semibold">Tweet</h2>
+                <h2 className="font-display text-lg font-semibold">Statement</h2>
                 <div className="mt-4 space-y-4">
                   <div>
-                    <Label htmlFor="url">Tweet URL</Label>
+                    <Label htmlFor="url">Source URL</Label>
                     <Input
                       id="url"
                       type="url"
@@ -274,12 +299,12 @@ function UploadPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="text">Tweet text *</Label>
+                    <Label htmlFor="text">Statement text *</Label>
                     <Textarea
                       id="text"
                       required
                       rows={4}
-                      placeholder="Paste the full tweet text here..."
+                      placeholder="Paste the full statement here..."
                       value={tweetText}
                       onChange={(e) => setTweetText(e.target.value)}
                       className="mt-1.5"
@@ -296,36 +321,50 @@ function UploadPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="screenshot">Screenshot (optional, max 4 MB)</Label>
+                    <Label htmlFor="screenshots">Screenshots (optional, max 8, 4 MB each)</Label>
                     <Input
-                      id="screenshot"
+                      id="screenshots"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleScreenshot(e.target.files?.[0] ?? null)}
+                      multiple
+                      onChange={(e) => handleScreenshots(e.target.files)}
                       className="mt-1.5 cursor-pointer"
+                      disabled={screenshotFiles.length >= MAX_SCREENSHOTS}
                     />
-                    {screenshotPreview && (
-                      <div className="mt-3 overflow-hidden rounded-lg border border-border">
-                        <img
-                          src={screenshotPreview}
-                          alt="Preview"
-                          className="max-h-64 w-full object-contain bg-muted"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setScreenshotFile(null);
-                            setScreenshotPreview(undefined);
-                            // Reset the file input
-                            const input = document.getElementById(
-                              "screenshot",
-                            ) as HTMLInputElement | null;
-                            if (input) input.value = "";
-                          }}
-                          className="block w-full border-t border-border bg-muted px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"
-                        >
-                          Remove screenshot
-                        </button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {screenshotFiles.length}/{MAX_SCREENSHOTS} screenshots selected
+                    </p>
+
+                    {/* Screenshot previews grid */}
+                    {screenshotPreviews.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <h3 className="text-sm font-medium text-foreground">
+                          Selected screenshots:
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                          {screenshotPreviews.map((preview, index) => (
+                            <div
+                              key={index}
+                              className="group relative overflow-hidden rounded-lg border border-border bg-muted"
+                            >
+                              <img
+                                src={preview}
+                                alt={`Screenshot ${index + 1}`}
+                                className="aspect-square w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeScreenshot(index)}
+                                className="absolute inset-0 flex items-center justify-center bg-foreground/0 transition-colors group-hover:bg-foreground/20"
+                                title="Delete screenshot"
+                              >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/90 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                  <X className="h-4 w-4" />
+                                </div>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -334,8 +373,8 @@ function UploadPage() {
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-3">
-                <Button type="submit" size="lg" disabled={createTweetMutation.isPending}>
-                  {createTweetMutation.isPending ? (
+                <Button type="submit" size="lg" disabled={createArchiveMutation.isPending}>
+                  {createArchiveMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving…

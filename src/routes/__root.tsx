@@ -40,8 +40,16 @@ export const Route = createRootRoute({
       { name: "description", content: "Nigeria's public archive." },
       { property: "og:description", content: "Nigeria's public archive." },
       { name: "twitter:description", content: "Nigeria's public archive." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/HVa7ZewUPxcPfBQfxzsQS46K49N2/social-images/social-1776521193481-nigeria_(1).webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/HVa7ZewUPxcPfBQfxzsQS46K49N2/social-images/social-1776521193481-nigeria_(1).webp" },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/HVa7ZewUPxcPfBQfxzsQS46K49N2/social-images/social-1776521193481-nigeria_(1).webp",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/HVa7ZewUPxcPfBQfxzsQS46K49N2/social-images/social-1776521193481-nigeria_(1).webp",
+      },
     ],
     links: [
       { rel: "icon", href: "/favicon.svg" },
