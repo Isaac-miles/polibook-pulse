@@ -107,18 +107,18 @@ function Index() {
 
           <form
             onSubmit={handleSearch}
-            className="mt-4 flex flex-col gap-2 rounded-2xl bg-card p-2 shadow-[var(--shadow-elevated)] sm:flex-row"
+            className="mt-6 flex items-center gap-4 rounded-full bg-white/95 p-3 shadow-[var(--shadow-elevated)] sm:flex-row"
           >
-            <div className="flex flex-1 items-center gap-2 px-4">
-              <Search className="h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-1 items-center gap-3 px-6 py-2">
+              <Search className="h-5 w-5 text-muted-foreground" />
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Search by name, party, or keyword…"
-                className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
+                className="border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0 text-lg placeholder:text-muted-foreground"
               />
             </div>
-            <Button type="submit" size="lg" className="shrink-0" disabled={isLoading}>
+            <Button type="submit" size="lg" className="shrink-0 rounded-full px-6 py-3" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -129,6 +129,21 @@ function Index() {
               )}
             </Button>
           </form>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 text-sm text-white/90">
+              Timestamps
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 text-sm text-white/90">
+              Screenshots
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 text-sm text-white/90">
+              Sources
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 text-sm text-white/90">
+              Community verified
+            </span>
+          </div>
         </div>
       </section>
 
@@ -141,7 +156,7 @@ function Index() {
                 <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
                   Community timeline
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-foreground">
+                <h2 className="mt-2 text-sm font-semibold text-foreground">
                   Recently added archives
                 </h2>
               </div>

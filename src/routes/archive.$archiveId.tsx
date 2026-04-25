@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useGetArchive } from "@/hooks/useQueries";
 import { type ScreenshotInfo } from "@/lib/api";
-import { ExternalLink, Heart, HeartCrack, Loader2, MessageCircle, ChevronLeft } from "lucide-react";
+import { ExternalLink, ThumbsUp, ThumbsDown, Loader2, MessageCircle, ChevronLeft } from "lucide-react";
+import { useVoteArchive } from "@/hooks/useQueries";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -54,6 +55,58 @@ function ArchiveDetailsPage() {
   ]);
 
   const { data: archive, isLoading, error } = useGetArchive(archiveId);
+
+  // Voting state and mutation (keep backend vote types 'love'/'hate')
+  const [voteState, setVoteState] = useState<"love" | "hate" | null>(null);
+  const voteMutation = useVoteArchive({
+    onSuccess: (data: { loveCount: number; heartbreakCount: number }) => {
+      // Update local counts after successful vote
+      if (archive) {
+        (archive as any).loveCount = data.loveCount;
+        (archive as any).heartbreakCount = data.heartbreakCount;
+      }
+    },
+  });
+
+  function VoteButtons({ archive }: { archive: any }) {
+    const handleVote = (type: "love" | "hate") => {
+      if (voteState === type) {
+        setVoteState(null);
+      } else {
+        setVoteState(type);
+        voteMutation.mutate({ archiveId: archive._id || archive.id, voteType: type });
+      }
+    };
+
+    return (
+      <>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => handleVote("love")}
+          aria-pressed={voteState === "love"}
+          aria-label="Vote up"
+          disabled={voteMutation.isPending}
+        >
+          <ThumbsUp className="h-4 w-4" />
+          {archive.loveCount} Vote up
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => handleVote("hate")}
+          aria-pressed={voteState === "hate"}
+          aria-label="Vote down"
+          disabled={voteMutation.isPending}
+        >
+          <ThumbsDown className="h-4 w-4" />
+          {archive.heartbreakCount} Vote down
+        </Button>
+      </>
+    );
+  }
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,14 +253,7 @@ function ArchiveDetailsPage() {
 
           {/* Vote Buttons */}
           <div className="flex flex-wrap gap-3 border-t border-border pt-6">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Heart className="h-4 w-4" />
-              {archive.loveCount} Love this
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <HeartCrack className="h-4 w-4" />
-              {archive.heartbreakCount} Heartbreak
-            </Button>
+            <VoteButtons archive={archive} />
           </div>
         </article>
 
