@@ -13,6 +13,7 @@ import {
   voteTweet,
   type TweetDoc,
   type UserRecord,
+  Tweet,
 } from "../lib/api";
 
 // Query keys
@@ -34,10 +35,7 @@ export const queryKeys = {
 };
 
 // ---- Search Users (fuzzy, multi-result — for index page) ----
-export function useSearchUsers(
-  query: string,
-  options?: Record<string, unknown>
-) {
+export function useSearchUsers(query: string, options?: Record<string, unknown>) {
   return useQuery({
     queryKey: queryKeys.users.search(query),
     queryFn: () => searchUsers(query),
@@ -53,7 +51,7 @@ export function useSearchTweets(
   query: string,
   page = 1,
   limit = 100,
-  options?: Record<string, unknown>
+  options?: Record<string, unknown>,
 ) {
   return useQuery({
     queryKey: queryKeys.tweets.search(query, page, limit),
@@ -66,10 +64,7 @@ export function useSearchTweets(
 }
 
 // ---- Get User (exact match — for upload page check) ----
-export function useGetUser(
-  displayName: string,
-  options?: Record<string, unknown>
-) {
+export function useGetUser(displayName: string, options?: Record<string, unknown>) {
   return useQuery({
     queryKey: queryKeys.users.detail(displayName),
     queryFn: () => getUser(displayName),
@@ -112,12 +107,12 @@ export function useVoteTweet(options?: Record<string, unknown>) {
       voteTweet(tweetId, voteType),
     onSuccess: (data, variables) => {
       // Update the cache for recent archives
-      queryClient.setQueryData(["recent-archives"], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((tweet: any) =>
+      queryClient.setQueryData(["recent-archives"], (oldData: unknown) => {
+        if (!oldData || !Array.isArray(oldData)) return oldData;
+        return oldData.map((tweet: Tweet) =>
           tweet.id === variables.tweetId
             ? { ...tweet, loveCount: data.loveCount, heartbreakCount: data.heartbreakCount }
-            : tweet
+            : tweet,
         );
       });
       // Also invalidate search results if needed
@@ -155,13 +150,8 @@ export function useUpdateTweet(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: string;
-      payload: Parameters<typeof updateTweet>[1];
-    }) => updateTweet(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof updateTweet>[1] }) =>
+      updateTweet(id, payload),
     onSuccess: (data: TweetDoc) => {
       queryClient.setQueryData(queryKeys.tweets.detail(data._id), data);
       queryClient.invalidateQueries({ queryKey: queryKeys.tweets.all });
@@ -207,9 +197,7 @@ export function useExportAll(options?: Record<string, unknown>) {
 // ---- Utilities ----
 export function useCachedUser(displayName: string) {
   const queryClient = useQueryClient();
-  return queryClient.getQueryData<UserRecord>(
-    queryKeys.users.detail(displayName)
-  );
+  return queryClient.getQueryData<UserRecord>(queryKeys.users.detail(displayName));
 }
 
 export function useCachedTweet(id: string) {

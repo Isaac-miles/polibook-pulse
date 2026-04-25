@@ -88,7 +88,7 @@ export function upsertUser(input: {
 
 export function addTweet(
   username: string,
-  tweet: { url: string; text: string; postedAt?: string; screenshot?: string }
+  tweet: { url: string; text: string; postedAt?: string; screenshot?: string },
 ): UserRecord | null {
   const db = loadDB();
   const key = normalize(username);

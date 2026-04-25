@@ -9,7 +9,7 @@ import { downloadJSON, type UserRecord, type TweetDoc } from "@/lib/api";
 import { useGetUser, useCreateTweet, useExportAll } from "@/hooks/useQueries";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, X, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
@@ -44,8 +44,11 @@ function UploadPage() {
   const [tweetUrl, setTweetUrl] = useState("");
   const [tweetText, setTweetText] = useState("");
   const [postedAt, setPostedAt] = useState("");
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | undefined>(undefined);
+  const [screenshotFiles, setScreenshotFiles] = useState<File[]>([]);
+  const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
+
+  const MAX_SCREENSHOTS = 8;
+  const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 
   // Use React Query hooks
   const { data: foundUser, isLoading: checking } = useGetUser(checked ? username : "", {
@@ -60,8 +63,8 @@ function UploadPage() {
       setTweetUrl("");
       setTweetText("");
       setPostedAt("");
-      setScreenshotFile(null);
-      setScreenshotPreview(undefined);
+      setScreenshotFiles([]);
+      setScreenshotPreviews([]);
       toast.success("Tweet archived successfully");
       router.navigate({ to: "/" });
     },
@@ -88,20 +91,43 @@ function UploadPage() {
     }
   }, [checked, checking, foundUser]);
 
-  const handleScreenshot = (file: File | null) => {
-    if (!file) {
-      setScreenshotFile(null);
-      setScreenshotPreview(undefined);
-      return;
+  const handleScreenshots = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const newFiles: File[] = [];
+    const newPreviews: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      // Check for max file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`"${file.name}" is too large — maximum 4 MB per image`);
+        continue;
+      }
+
+      // Check for max number of files
+      if (screenshotFiles.length + newFiles.length >= MAX_SCREENSHOTS) {
+        toast.error(`Maximum ${MAX_SCREENSHOTS} screenshots allowed`);
+        break;
+      }
+
+      newFiles.push(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setScreenshotPreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
     }
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Image too large — maximum 4 MB");
-      return;
-    }
-    setScreenshotFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setScreenshotPreview(reader.result as string);
-    reader.readAsDataURL(file);
+
+    setScreenshotFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const removeScreenshot = (index: number) => {
+    setScreenshotFiles((prev) => prev.filter((_, i) => i !== index));
+    setScreenshotPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleCheck = async () => {
@@ -133,7 +159,7 @@ function UploadPage() {
       tweetUrl: tweetUrl || undefined,
       tweetText,
       postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
-      screenshot: screenshotFile ?? undefined,
+      screenshots: screenshotFiles.length > 0 ? screenshotFiles : undefined,
     });
   };
 
@@ -296,36 +322,50 @@ function UploadPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="screenshot">Screenshot (optional, max 4 MB)</Label>
+                    <Label htmlFor="screenshots">Screenshots (optional, max 8, 4 MB each)</Label>
                     <Input
-                      id="screenshot"
+                      id="screenshots"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleScreenshot(e.target.files?.[0] ?? null)}
+                      multiple
+                      onChange={(e) => handleScreenshots(e.target.files)}
                       className="mt-1.5 cursor-pointer"
+                      disabled={screenshotFiles.length >= MAX_SCREENSHOTS}
                     />
-                    {screenshotPreview && (
-                      <div className="mt-3 overflow-hidden rounded-lg border border-border">
-                        <img
-                          src={screenshotPreview}
-                          alt="Preview"
-                          className="max-h-64 w-full object-contain bg-muted"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setScreenshotFile(null);
-                            setScreenshotPreview(undefined);
-                            // Reset the file input
-                            const input = document.getElementById(
-                              "screenshot",
-                            ) as HTMLInputElement | null;
-                            if (input) input.value = "";
-                          }}
-                          className="block w-full border-t border-border bg-muted px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"
-                        >
-                          Remove screenshot
-                        </button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {screenshotFiles.length}/{MAX_SCREENSHOTS} screenshots selected
+                    </p>
+
+                    {/* Screenshot previews grid */}
+                    {screenshotPreviews.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <h3 className="text-sm font-medium text-foreground">
+                          Selected screenshots:
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                          {screenshotPreviews.map((preview, index) => (
+                            <div
+                              key={index}
+                              className="group relative overflow-hidden rounded-lg border border-border bg-muted"
+                            >
+                              <img
+                                src={preview}
+                                alt={`Screenshot ${index + 1}`}
+                                className="aspect-square w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeScreenshot(index)}
+                                className="absolute inset-0 flex items-center justify-center bg-foreground/0 transition-colors group-hover:bg-foreground/20"
+                                title="Delete screenshot"
+                              >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/90 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                  <X className="h-4 w-4" />
+                                </div>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

@@ -138,8 +138,12 @@ function Index() {
           <div className="rounded-3xl border border-border bg-card/90 p-6 shadow-[var(--shadow-soft)] backdrop-blur-lg">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">Community timeline</p>
-                <h2 className="mt-2 text-2xl font-semibold text-foreground">Recently added archives</h2>
+                <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
+                  Community timeline
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-foreground">
+                  Recently added archives
+                </h2>
               </div>
               {/* <a
                 href="/upload"

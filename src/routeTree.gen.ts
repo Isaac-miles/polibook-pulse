@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ArchiveTweetIdRouteImport } from './routes/archive.$tweetId'
 
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
@@ -28,35 +29,44 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArchiveTweetIdRoute = ArchiveTweetIdRouteImport.update({
+  id: '/archive/$tweetId',
+  path: '/archive/$tweetId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/upload': typeof UploadRoute
+  '/archive/$tweetId': typeof ArchiveTweetIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/upload': typeof UploadRoute
+  '/archive/$tweetId': typeof ArchiveTweetIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/upload': typeof UploadRoute
+  '/archive/$tweetId': typeof ArchiveTweetIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/upload'
+  fullPaths: '/' | '/about' | '/upload' | '/archive/$tweetId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/upload'
-  id: '__root__' | '/' | '/about' | '/upload'
+  to: '/' | '/about' | '/upload' | '/archive/$tweetId'
+  id: '__root__' | '/' | '/about' | '/upload' | '/archive/$tweetId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   UploadRoute: typeof UploadRoute
+  ArchiveTweetIdRoute: typeof ArchiveTweetIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/archive/$tweetId': {
+      id: '/archive/$tweetId'
+      path: '/archive/$tweetId'
+      fullPath: '/archive/$tweetId'
+      preLoaderRoute: typeof ArchiveTweetIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   UploadRoute: UploadRoute,
+  ArchiveTweetIdRoute: ArchiveTweetIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

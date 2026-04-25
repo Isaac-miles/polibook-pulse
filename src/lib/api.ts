@@ -1,4 +1,13 @@
-import apiClient from './apiClient';
+import apiClient from "./apiClient";
+
+export interface ScreenshotInfo {
+  filename: string;
+  originalName: string;
+  mimetype: string;
+  size: number;
+  url: string;
+  publicId: string;
+}
 
 export interface TweetDoc {
   _id: string;
@@ -10,14 +19,8 @@ export interface TweetDoc {
   tweetUrl: string;
   tweetText: string;
   postedOn: string | null;
-  screenshot: {
-    filename: string;
-    originalName: string;
-    mimetype: string;
-    size: number;
-    url: string;
-    publicId: string;
-  };
+  screenshot?: ScreenshotInfo; // Kept for backward compatibility
+  screenshots?: ScreenshotInfo[]; // New: array of screenshots
   createdAt: string;
   updatedAt: string;
   loveCount: number;
@@ -41,7 +44,8 @@ export interface Tweet {
   url: string;
   text: string;
   postedAt?: string;
-  screenshot?: string;
+  screenshot?: string; // Kept for backward compatibility
+  screenshots?: string[]; // New: array of screenshot URLs
   createdAt: string;
   loveCount: number;
   heartbreakCount: number;
@@ -57,15 +61,22 @@ export interface UserRecord {
   tweets: Tweet[];
 }
 
-
 /** Turn a flat backend doc into the frontend Tweet shape. */
 function docToTweet(doc: TweetDoc): Tweet {
+  // Handle both old (single screenshot) and new (multiple screenshots) formats
+  const screenshots = doc.screenshots
+    ? doc.screenshots.map((s) => s.url)
+    : doc.screenshot
+      ? [doc.screenshot.url]
+      : [];
+
   return {
     id: doc._id,
     url: doc.tweetUrl,
     text: doc.tweetText,
     postedAt: doc.postedOn ?? undefined,
-    screenshot: doc.screenshot?.url || undefined,
+    screenshot: doc.screenshot?.url || undefined, // Keep for backward compatibility
+    screenshots: screenshots.length > 0 ? screenshots : undefined,
     createdAt: doc.createdAt,
     loveCount: doc.loveCount || 0,
     heartbreakCount: doc.heartbreakCount || 0,
@@ -123,8 +134,9 @@ const DUMMY_RECENT_ARCHIVES: Tweet[] = [
 
 export async function getRecentArchives(): Promise<Tweet[]> {
   try {
-    const res = await apiClient.get('/api/recent-archives');
-    return res.data.map((doc: any) => docToTweet(doc));
+    const res = await apiClient.get("/api/recent-archives");
+    const docs: TweetDoc[] = res.data;
+    return docs.map((doc) => docToTweet(doc));
   } catch (error) {
     // Fallback to dummy data on failure
     console.warn("Failed to fetch recent archives, using dummy data:", error);
@@ -136,7 +148,7 @@ export async function getRecentArchives(): Promise<Tweet[]> {
 
 export async function searchTweets(
   query: string,
-  opts: { page?: number; limit?: number } = {}
+  opts: { page?: number; limit?: number } = {},
 ): Promise<PaginatedResponse> {
   const params = new URLSearchParams({
     search: query,
@@ -186,9 +198,7 @@ export async function searchUsers(query: string): Promise<UserRecord[]> {
 export async function getUser(displayName: string): Promise<UserRecord | null> {
   const { data } = await searchTweets(displayName, { limit: 200 });
 
-  const exact = data.filter(
-    (d) => d.displayName.toLowerCase() === displayName.toLowerCase()
-  );
+  const exact = data.filter((d) => d.displayName.toLowerCase() === displayName.toLowerCase());
 
   return docsToUserRecord(exact);
 }
@@ -198,10 +208,8 @@ export async function getTweet(id: string): Promise<TweetDoc> {
   return res.data;
 }
 
-export async function captureScreenshot(
-  url: string
-): Promise<{ url: string; publicId: string }> {
-  const res = await apiClient.post('/api/screenshots', { url });
+export async function captureScreenshot(url: string): Promise<{ url: string; publicId: string }> {
+  const res = await apiClient.post("/api/screenshots", { url });
   return res.data;
 }
 
@@ -215,6 +223,7 @@ export async function createTweet(payload: {
   tweetText: string;
   postedOn?: string;
   screenshot?: File;
+  screenshots?: File[];
   screenshotUrl?: string;
   screenshotPublicId?: string;
 }): Promise<TweetDoc> {
@@ -228,15 +237,19 @@ export async function createTweet(payload: {
   fd.append("tweetText", payload.tweetText);
   fd.append("postedOn", payload.postedOn ?? "");
 
-  if (payload.screenshot) {
+  if (payload.screenshots && payload.screenshots.length > 0) {
+    payload.screenshots.forEach((file, index) => {
+      fd.append(`screenshots`, file);
+    });
+  } else if (payload.screenshot) {
     fd.append("screenshot", payload.screenshot);
   } else if (payload.screenshotUrl && payload.screenshotPublicId) {
     fd.append("screenshotUrl", payload.screenshotUrl);
     fd.append("screenshotPublicId", payload.screenshotPublicId);
   }
 
-  const res = await apiClient.post('/api/tweets', fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+  const res = await apiClient.post("/api/tweets", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;
 }
@@ -253,23 +266,33 @@ export async function updateTweet(
     tweetText?: string;
     postedOn?: string;
     screenshot?: File;
+    screenshots?: File[];
     removeScreenshot?: boolean;
-  }
+    removeScreenshots?: boolean;
+  },
 ): Promise<TweetDoc> {
   const fd = new FormData();
   if (payload.displayName !== undefined) fd.append("displayName", payload.displayName);
   if (payload.firstName !== undefined) fd.append("firstName", payload.firstName);
   if (payload.lastName !== undefined) fd.append("lastName", payload.lastName);
-  if (payload.partyAffiliation !== undefined) fd.append("partyAffiliation", payload.partyAffiliation);
+  if (payload.partyAffiliation !== undefined)
+    fd.append("partyAffiliation", payload.partyAffiliation);
   if (payload.notes !== undefined) fd.append("notes", payload.notes);
   if (payload.tweetUrl !== undefined) fd.append("tweetUrl", payload.tweetUrl);
   if (payload.tweetText !== undefined) fd.append("tweetText", payload.tweetText);
   if (payload.postedOn !== undefined) fd.append("postedOn", payload.postedOn);
   if (payload.removeScreenshot) fd.append("removeScreenshot", "true");
-  if (payload.screenshot) fd.append("screenshot", payload.screenshot);
+  if (payload.removeScreenshots) fd.append("removeScreenshots", "true");
+  if (payload.screenshots && payload.screenshots.length > 0) {
+    payload.screenshots.forEach((file) => {
+      fd.append(`screenshots`, file);
+    });
+  } else if (payload.screenshot) {
+    fd.append("screenshot", payload.screenshot);
+  }
 
   const res = await apiClient.put(`/api/tweets/${id}`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;
 }
@@ -284,8 +307,8 @@ export async function exportAll(): Promise<TweetDoc[]> {
   let pages = 1;
 
   do {
-    const res = await apiClient.get('/api/tweets', {
-      params: { page, limit: 100, sort: '-createdAt' },
+    const res = await apiClient.get("/api/tweets", {
+      params: { page, limit: 100, sort: "-createdAt" },
     });
     all.push(...res.data.data);
     pages = res.data.meta.pages;
@@ -297,7 +320,7 @@ export async function exportAll(): Promise<TweetDoc[]> {
 
 export async function voteTweet(
   tweetId: string,
-  voteType: "love" | "hate"
+  voteType: "love" | "hate",
 ): Promise<{ loveCount: number; heartbreakCount: number }> {
   const res = await apiClient.post(`/api/tweets/${tweetId}/vote`, { type: voteType });
   return res.data;
