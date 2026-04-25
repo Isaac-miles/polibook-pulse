@@ -146,8 +146,8 @@ export function useCreateArchive(options?: Record<string, unknown>) {
   });
 }
 
-// ---- Update Tweet Mutation ----
-export function useUpdateTweet(options?: Record<string, unknown>) {
+// ---- Update Archive Mutation ----
+export function useUpdateArchive(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -162,8 +162,8 @@ export function useUpdateTweet(options?: Record<string, unknown>) {
   });
 }
 
-// ---- Delete Tweet Mutation ----
-export function useDeleteTweet(options?: Record<string, unknown>) {
+// ---- Delete Archive Mutation ----
+export function useDeleteArchive(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({

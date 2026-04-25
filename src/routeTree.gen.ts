@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ArchiveTweetIdRouteImport } from './routes/archive.$tweetId'
+import { Route as ArchiveArchiveIdRouteImport } from './routes/archive.$archiveId'
 
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
@@ -29,9 +29,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ArchiveTweetIdRoute = ArchiveTweetIdRouteImport.update({
-  id: '/archive/$tweetId',
-  path: '/archive/$tweetId',
+const ArchiveArchiveIdRoute = ArchiveArchiveIdRouteImport.update({
+  id: '/archive/$archiveId',
+  path: '/archive/$archiveId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -39,34 +39,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/upload': typeof UploadRoute
-  '/archive/$tweetId': typeof ArchiveTweetIdRoute
+  '/archive/$archiveId': typeof ArchiveArchiveIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/upload': typeof UploadRoute
-  '/archive/$tweetId': typeof ArchiveTweetIdRoute
+  '/archive/$archiveId': typeof ArchiveArchiveIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/upload': typeof UploadRoute
-  '/archive/$tweetId': typeof ArchiveTweetIdRoute
+  '/archive/$archiveId': typeof ArchiveArchiveIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/upload' | '/archive/$tweetId'
+  fullPaths: '/' | '/about' | '/upload' | '/archive/$archiveId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/upload' | '/archive/$tweetId'
-  id: '__root__' | '/' | '/about' | '/upload' | '/archive/$tweetId'
+  to: '/' | '/about' | '/upload' | '/archive/$archiveId'
+  id: '__root__' | '/' | '/about' | '/upload' | '/archive/$archiveId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   UploadRoute: typeof UploadRoute
-  ArchiveTweetIdRoute: typeof ArchiveTweetIdRoute
+  ArchiveArchiveIdRoute: typeof ArchiveArchiveIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,11 +92,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/archive/$tweetId': {
-      id: '/archive/$tweetId'
-      path: '/archive/$tweetId'
-      fullPath: '/archive/$tweetId'
-      preLoaderRoute: typeof ArchiveTweetIdRouteImport
+    '/archive/$archiveId': {
+      id: '/archive/$archiveId'
+      path: '/archive/$archiveId'
+      fullPath: '/archive/$archiveId'
+      preLoaderRoute: typeof ArchiveArchiveIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -106,7 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   UploadRoute: UploadRoute,
-  ArchiveTweetIdRoute: ArchiveTweetIdRoute,
+  ArchiveArchiveIdRoute: ArchiveArchiveIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

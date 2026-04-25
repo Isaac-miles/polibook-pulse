@@ -85,7 +85,7 @@ function UploadPage() {
   // Show toast when user is found
   useEffect(() => {
     if (checked && !checking && foundUser) {
-      toast.success(`Found ${foundUser.displayName} — ${foundUser.tweets.length} tweet(s)`);
+      toast.success(`Found ${foundUser.displayName} — ${foundUser.archives.length} archive(s)`);
     } else if (checked && !checking && !foundUser) {
       toast.message("New user — fill in their info below");
     }
@@ -142,7 +142,7 @@ function UploadPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return toast.error("Display name is required");
-    if (!tweetText.trim()) return toast.error("Tweet text is required");
+    if (!tweetText.trim()) return toast.error("Statement text is required");
 
     const effectiveDisplayName = foundUser ? foundUser.displayName : displayName.trim();
 
@@ -210,8 +210,7 @@ function UploadPage() {
               <p className="mt-3 text-sm text-foreground">
                 ✓ Existing user: <strong>{foundUser.displayName}</strong>{" "}
                 <span className="text-muted-foreground">
-                  ({foundUser.tweets.length} tweet
-                  {foundUser.tweets.length !== 1 ? "s" : ""})
+                  ({foundUser.archives.length} archive{foundUser.archives.length !== 1 ? "s" : ""})
                 </span>
               </p>
             )}
@@ -286,10 +285,10 @@ function UploadPage() {
 
               {/* Tweet fields */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-                <h2 className="font-display text-lg font-semibold">Tweet</h2>
+                <h2 className="font-display text-lg font-semibold">Statement</h2>
                 <div className="mt-4 space-y-4">
                   <div>
-                    <Label htmlFor="url">Tweet URL</Label>
+                    <Label htmlFor="url">Source URL</Label>
                     <Input
                       id="url"
                       type="url"
@@ -300,12 +299,12 @@ function UploadPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="text">Tweet text *</Label>
+                    <Label htmlFor="text">Statement text *</Label>
                     <Textarea
                       id="text"
                       required
                       rows={4}
-                      placeholder="Paste the full tweet text here..."
+                      placeholder="Paste the full statement here..."
                       value={tweetText}
                       onChange={(e) => setTweetText(e.target.value)}
                       className="mt-1.5"

@@ -42,7 +42,7 @@ function About() {
               page and enter a username.
             </li>
             <li>
-              If they exist in the archive, you'll see their info and every tweet that's been
+              If they exist in the archive, you'll see their info and every archived statement that's been
               logged.
             </li>
             <li>
@@ -53,7 +53,7 @@ function About() {
               to add them.
             </li>
             <li>
-              Contributors paste the tweet text and a link to the original — the timestamp gets
+              Contributors paste the statement text and a link to the original — the timestamp gets
               saved automatically.
             </li>
           </ol>

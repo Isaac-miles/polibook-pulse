@@ -10,7 +10,7 @@ import { ExternalLink, Heart, HeartCrack, Loader2, MessageCircle, ChevronLeft } 
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
-export const Route = createFileRoute("/archive/$tweetId")({
+export const Route = createFileRoute("/archive/$archiveId")({
   head: () => ({
     meta: [
       { title: "Archive Details — Trail" },
@@ -37,7 +37,7 @@ function formatDate(iso?: string) {
 }
 
 function ArchiveDetailsPage() {
-  const { tweetId: archiveId } = Route.useParams();
+  const { archiveId } = Route.useParams();
   const [comment, setComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 

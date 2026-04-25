@@ -239,10 +239,10 @@ function Index() {
                           {user.party}
                         </span>
                       )}
-                        <span>
-                          <span className="font-medium text-foreground/70">Archives archived:</span>{" "}
+                      <span>
+                        <span className="font-medium text-foreground/70">Archives archived:</span>{" "}
                         {user.archives.length}
-                        </span>
+                      </span>
                     </div>
                     {user.notes && (
                       <p className="mt-2 text-sm italic text-muted-foreground">{user.notes}</p>
@@ -250,7 +250,7 @@ function Index() {
                   </div>
                 </div>
 
-                {/* Tweet list */}
+                {/* archive list */}
                 <div>
                   <h3 className="mb-4 font-display text-lg font-semibold">
                     Archived statements ({user.archives.length})

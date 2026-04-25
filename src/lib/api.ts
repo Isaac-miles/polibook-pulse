@@ -28,7 +28,7 @@ export interface ArchiveDoc {
 }
 
 export interface PaginatedResponse {
-  data: TweetDoc[];
+  data: ArchiveDoc[];
   meta: {
     total: number;
     page: number;

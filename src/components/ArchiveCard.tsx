@@ -22,7 +22,7 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
   const [voteState, setVoteState] = useState<"love" | "hate" | null>(null);
 
   const voteMutation = useVoteArchive({
-    onSuccess: (data) => {
+    onSuccess: (data: { loveCount: number; heartbreakCount: number }) => {
       // Update local counts after successful vote
       archive.loveCount = data.loveCount;
       archive.heartbreakCount = data.heartbreakCount;
@@ -68,7 +68,8 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
           <div className="flex items-center gap-3">
             {screenshots.length > 0 && (
               <span className="inline-flex items-center gap-1 text-muted-foreground">
-                <ImageIcon className="h-3 w-3" /> {screenshots.length} {screenshots.length === 1 ? "Screenshot" : "Screenshots"}
+                <ImageIcon className="h-3 w-3" />
+                {screenshots.length} {screenshots.length === 1 ? "Screenshot" : "Screenshots"}
               </span>
             )}
             {archive.url && (
@@ -91,7 +92,10 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-3 text-sm" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-3 text-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
             onClick={(e) => {
