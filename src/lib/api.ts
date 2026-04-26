@@ -29,6 +29,15 @@ export interface ArchiveDoc {
   };
 }
 
+export interface Comment {
+  _id: string;
+  tweetId: string;
+  author: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PaginatedResponse {
   data: ArchiveDoc[];
   meta: {
@@ -351,4 +360,40 @@ export function downloadJSON(data: unknown, filename = "trail-export.json") {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Comments api for archives
+ */
+
+export async function getComments(tweetId: string): Promise<Comment[]> {
+  try {
+    const res = await apiClient.get(`/api/archives/${tweetId}/comments`);
+    return res.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error ?? `Failed to load comments (${error.response?.status})`);
+  }
+}
+
+export async function createComment(
+  tweetId: string,
+  payload: { author: string; text: string }
+): Promise<Comment> {
+  try {
+    const res = await apiClient.post(`/api/archives/${tweetId}/comments`, payload);
+    return res.data
+  } catch (error:any) {
+    throw new Error(error.response?.data?.error ?? `Failed to post comment (${error.response?.status})`);
+  }
+}
+
+export async function deleteComment(
+  tweetId: string,
+  commentId: string
+): Promise<void> {
+  try {
+    await apiClient.delete(`/api/archives/${tweetId}/comments/${commentId}`);
+  } catch (error:any) {
+    throw new Error(error.response?.data?.error ?? `Failed to delete comment (${error.response?.status})`);
+  }
 }
