@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Archive } from "@/lib/api";
-import { ExternalLink, Heart, HeartCrack, ImageIcon } from "lucide-react";
+import { ExternalLink, ThumbsUp, ThumbsDown, ImageIcon } from "lucide-react";
 import { useVoteArchive } from "@/hooks/useQueries";
 import { ScreenshotGrid } from "./ScreenshotGrid";
 
@@ -110,7 +110,7 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            <Heart
+            <ThumbsUp
               className={`h-4 w-4 cursor-pointer ${voteState === "love" ? "fill-current" : ""}`}
             />
             {archive.votes.loveCount}
@@ -129,7 +129,7 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            <HeartCrack
+            <ThumbsDown
               className={`h-4 w-4 cursor-pointer ${voteState === "heartbreak" ? "fill-current" : ""}`}
             />
             {archive.votes.heartbreakCount}
