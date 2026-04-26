@@ -196,16 +196,26 @@ export function useComments(tweetId: string, options?: Record<string, unknown>) 
 
 export function useCreateComment(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
+  const mutationOptions = (options ?? {}) as {
+    onSuccess?: (...args: unknown[]) => void;
+    [key: string]: unknown;
+  };
+  const { onSuccess: userOnSuccess, ...restOptions } = mutationOptions;
 
   return useMutation({
     mutationFn: ({ tweetId, payload }: { tweetId: string; payload: { author: string; text: string } }) =>
       createComment(tweetId, payload),
-    onSuccess: (_data, variables) => {
+    onSuccess: (...args) => {
+      const [, variables] = args as [unknown, { tweetId: string }];
       queryClient.invalidateQueries({
         queryKey: queryKeys.comments.byTweet(variables.tweetId),
       });
+
+      if (typeof userOnSuccess === "function") {
+        userOnSuccess(...args);
+      }
     },
-    ...options,
+    ...restOptions,
   });
 }
 

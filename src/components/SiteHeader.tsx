@@ -5,12 +5,12 @@ import { ChevronLeft } from "lucide-react";
 export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
-      <div className="h-1 bg-[image:var(--gradient-flag)]" />
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         {!backBtn && (
           <Link to="/" className="flex items-center gap-2.5">
             <div className="leading-tight">
-              <div className="font-display text-lg font-bold tracking-tight">TRAIL NG</div>
+              {/* <div className="font-display text-lg font-bold tracking-tight">TRAIL NG</div> */}
+              <img src="/trailng.png" alt="Trail tagline" className="-mt-1 h-10" />
             </div>
           </Link>
         )}

@@ -73,7 +73,7 @@ function Index() {
           style={{
             backgroundImage: "url('/nassembly.png')",
           }}
-        />
+        ></div>
 
         {/* Dark green gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#004d26]/95 via-[#006633]/85 to-[#0f9d58]/45" />
@@ -91,7 +91,7 @@ function Index() {
         {/* Soft fade */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
 
-        <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-28">
+        <div className="relative mx-auto max-w-6xl px-4 py-12">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.25em] text-white backdrop-blur-md">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
@@ -99,15 +99,15 @@ function Index() {
           </div>
 
           {/* Main content */}
-          <div className="mt-6 max-w-3xl">
-            <h1 className="text-5xl font-bold leading-tight text-white md:text-7xl">
-              Accountability
-              <span className="block bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
+          <div className="mt-4 max-w-3xl">
+            <h1 className="text-4xl font-bold leading-tight text-white md:text-7xl">
+              Accountability{" "}
+              <span className=" bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
                 archive
               </span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/90 md:text-xl">
+            <p className="mt-4 max-w-2xl text-lg leading-8 text-white/90 md:text-xl">
               A community archive of political statements posted on X/Twitter by Nigerian public
               figures. Search any name, party, or keyword to see what they actually said — with
               timestamps, screenshots, and sources.
@@ -120,7 +120,7 @@ function Index() {
             className="mt-10 flex flex-col gap-3 rounded-3xl bg-white/95 p-3 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:rounded-full"
           >
             {/* Input */}
-            <div className="flex w-full items-center gap-3 px-4 py-3 sm:flex-1 sm:px-6 sm:py-2">
+            <div className="flex w-full items-center gap-2 px-2 py-1 sm:flex-1 sm:px-2 sm:py-2 ">
               <Search className="h-5 w-5 text-muted-foreground" />
 
               <Input
@@ -135,7 +135,7 @@ function Index() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-2xl bg-green-700 py-4 text-base font-semibold hover:bg-green-800 sm:w-auto sm:rounded-full sm:px-8 sm:py-6"
+              className="w-full rounded-2xl bg-green-700 py-2 px-3 text-base font-semibold hover:bg-green-800 sm:w-auto sm:rounded-full sm:px-3 sm:py-3"
             >
               {isLoading ? (
                 <>
@@ -162,10 +162,10 @@ function Index() {
         </div>
       </section>
 
-      <main className="mx-auto max-w-5xl px-4 py-12">
+      <main className="mx-auto max-w-5xl px-2 py-12">
         {/* Recent timeline on home page */}
         {!searched && (
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/70 p-8 shadow-2xl backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/70 p-2 lg:p-8 shadow-2xl backdrop-blur-xl">
             {/* subtle gradient glow */}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-green-100/40 via-transparent to-emerald-200/30" />
 
