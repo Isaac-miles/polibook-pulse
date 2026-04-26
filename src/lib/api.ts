@@ -375,6 +375,8 @@ export async function getComments(tweetId: string): Promise<Comment[]> {
   }
 }
 
+
+//Create comment mutation
 export async function createComment(
   tweetId: string,
   payload: { author: string; text: string }
