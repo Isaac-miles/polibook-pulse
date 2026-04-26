@@ -200,11 +200,11 @@ function ArchiveDetailsPage() {
 
           {/* Vote Buttons */}
           <div className="flex flex-wrap gap-3 border-t border-border pt-6">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
               <Heart className="h-4 w-4" />
               {archive.loveCount} Love this
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
               <HeartCrack className="h-4 w-4" />
               {archive.heartbreakCount} Heartbreak
             </Button>

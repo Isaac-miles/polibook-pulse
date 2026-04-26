@@ -320,7 +320,7 @@ export async function exportAll(): Promise<ArchiveDoc[]> {
 
 export async function voteArchive(
   archiveId: string,
-  voteType: "love" | "hate",
+  voteType: "love" | "heartbreak",
 ): Promise<{ loveCount: number; heartbreakCount: number }> {
   const res = await apiClient.post(`/api/archives/${archiveId}/vote`, { type: voteType });
   return res.data;

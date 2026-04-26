@@ -110,7 +110,9 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            <Heart className={`h-4 w-4 ${voteState === "love" ? "fill-current" : ""}`} />
+            <Heart
+              className={`h-4 w-4 cursor-pointer ${voteState === "love" ? "fill-current" : ""}`}
+            />
             {archive.loveCount}
           </button>
           <button
@@ -127,7 +129,9 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            <HeartCrack className={`h-4 w-4 ${voteState === "hate" ? "fill-current" : ""}`} />
+            <HeartCrack
+              className={`h-4 w-4 cursor-pointer ${voteState === "hate" ? "fill-current" : ""}`}
+            />
             {archive.heartbreakCount}
           </button>
         </div>

@@ -104,7 +104,7 @@ export function useVoteArchive(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ archiveId, voteType }: { archiveId: string; voteType: "love" | "hate" }) =>
+    mutationFn: ({ archiveId, voteType }: { archiveId: string; voteType: "love" | "heartbreak" }) =>
       voteArchive(archiveId, voteType),
     onSuccess: (data, variables) => {
       // Update the cache for recent archives
