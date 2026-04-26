@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Archive } from "@/lib/api";
-import { ExternalLink, ThumbsUp, ThumbsDown, ImageIcon } from "lucide-react";
+import { ExternalLink, Heart, HeartCrack, ImageIcon } from "lucide-react";
 import { useVoteArchive } from "@/hooks/useQueries";
 import { ScreenshotGrid } from "./ScreenshotGrid";
 
@@ -19,17 +19,17 @@ function formatDate(iso?: string) {
 }
 
 export function ArchiveCard({ archive }: { archive: Archive }) {
-  const [voteState, setVoteState] = useState<"love" | "hate" | null>(null);
+  const [voteState, setVoteState] = useState<"love" | "heartbreak" | null>(null);
 
   const voteMutation = useVoteArchive({
     onSuccess: (data: { loveCount: number; heartbreakCount: number }) => {
       // Update local counts after successful vote
-      archive.loveCount = data.loveCount;
-      archive.heartbreakCount = data.heartbreakCount;
+      archive.votes.loveCount = data.loveCount;
+      archive.votes.heartbreakCount = data.heartbreakCount;
     },
   });
 
-  const handleVote = (type: "love" | "hate") => {
+  const handleVote = (type: "love" | "heartbreak") => {
     if (voteState === type) {
       setVoteState(null);
     } else {
@@ -40,26 +40,12 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
 
   const screenshots = archive.screenshots || (archive.screenshot ? [archive.screenshot] : []);
 
-  const MAX_EXCERPT = 250;
-  const isLongText = !!archive.text && archive.text.length > MAX_EXCERPT;
-  const excerpt = archive.text ? (isLongText ? archive.text.slice(0, MAX_EXCERPT) : archive.text) : "";
-
   return (
     <Link to={`/archive/${archive.id}`} className="block">
       <article className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5 cursor-pointer">
         <div className="absolute inset-y-0 left-0 w-1 bg-[image:var(--gradient-hero)] opacity-80" />
-
-        {archive.displayName && (
-          <div className="mb-2 flex items-baseline gap-3">
-            <h3 className="text-sm font-semibold text-foreground">{archive.displayName}</h3>
-            {archive.username && (
-              <span className="text-xs text-muted-foreground">@{archive.username}</span>
-            )}
-          </div>
-        )}
-
         <p className="whitespace-pre-wrap pl-2 text-[15px] leading-relaxed text-card-foreground">
-          {isLongText ? `${excerpt.trim()}…` : excerpt}
+          {archive.text}
         </p>
 
         {screenshots.length > 0 && (
@@ -123,28 +109,30 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
                 ? "border-emerald-400 bg-emerald-500/10 text-emerald-300"
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
-            aria-label="Vote up"
           >
-            <ThumbsUp className={`h-4 w-4 ${voteState === "love" ? "fill-current" : ""}`} />
-            {archive.loveCount}
+            <Heart
+              className={`h-4 w-4 cursor-pointer ${voteState === "love" ? "fill-current" : ""}`}
+            />
+            {archive.votes.loveCount}
           </button>
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
-              handleVote("hate");
+              handleVote("heartbreak");
             }}
             disabled={voteMutation.isPending}
-            aria-pressed={voteState === "hate"}
+            aria-pressed={voteState === "heartbreak"}
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
-              voteState === "hate"
+              voteState === "heartbreak"
                 ? "border-destructive bg-destructive/10 text-destructive"
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
-            aria-label="Vote down"
           >
-            <ThumbsDown className={`h-4 w-4 ${voteState === "hate" ? "fill-current" : ""}`} />
-            {archive.heartbreakCount}
+            <HeartCrack
+              className={`h-4 w-4 cursor-pointer ${voteState === "heartbreak" ? "fill-current" : ""}`}
+            />
+            {archive.votes.heartbreakCount}
           </button>
         </div>
       </article>
