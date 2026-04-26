@@ -19,17 +19,17 @@ function formatDate(iso?: string) {
 }
 
 export function ArchiveCard({ archive }: { archive: Archive }) {
-  const [voteState, setVoteState] = useState<"love" | "hate" | null>(null);
+  const [voteState, setVoteState] = useState<"love" | "heartbreak" | null>(null);
 
   const voteMutation = useVoteArchive({
     onSuccess: (data: { loveCount: number; heartbreakCount: number }) => {
       // Update local counts after successful vote
-      archive.loveCount = data.loveCount;
-      archive.heartbreakCount = data.heartbreakCount;
+      archive.votes.loveCount = data.loveCount;
+      archive.votes.heartbreakCount = data.heartbreakCount;
     },
   });
 
-  const handleVote = (type: "love" | "hate") => {
+  const handleVote = (type: "love" | "heartbreak") => {
     if (voteState === type) {
       setVoteState(null);
     } else {
@@ -113,26 +113,26 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
             <Heart
               className={`h-4 w-4 cursor-pointer ${voteState === "love" ? "fill-current" : ""}`}
             />
-            {archive.loveCount}
+            {archive.votes.loveCount}
           </button>
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
-              handleVote("hate");
+              handleVote("heartbreak");
             }}
             disabled={voteMutation.isPending}
-            aria-pressed={voteState === "hate"}
+            aria-pressed={voteState === "heartbreak"}
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
-              voteState === "hate"
+              voteState === "heartbreak"
                 ? "border-destructive bg-destructive/10 text-destructive"
                 : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
             <HeartCrack
-              className={`h-4 w-4 cursor-pointer ${voteState === "hate" ? "fill-current" : ""}`}
+              className={`h-4 w-4 cursor-pointer ${voteState === "heartbreak" ? "fill-current" : ""}`}
             />
-            {archive.heartbreakCount}
+            {archive.votes.heartbreakCount}
           </button>
         </div>
       </article>

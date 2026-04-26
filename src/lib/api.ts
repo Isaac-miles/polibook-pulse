@@ -23,8 +23,10 @@ export interface ArchiveDoc {
   screenshots?: ScreenshotInfo[]; // New: array of screenshots
   createdAt: string;
   updatedAt: string;
-  loveCount: number;
-  heartbreakCount: number;
+  votes: {                    // ← add this
+    loveCount: number;
+    heartbreakCount: number;
+  };
 }
 
 export interface PaginatedResponse {
@@ -47,8 +49,10 @@ export interface Archive {
   screenshot?: string; // Kept for backward compatibility
   screenshots?: string[]; // New: array of screenshot URLs
   createdAt: string;
-  loveCount: number;
-  heartbreakCount: number;
+  votes: {                    // ← add this
+    loveCount: number;
+    heartbreakCount: number;
+  };
 }
 
 export interface UserRecord {
@@ -78,8 +82,10 @@ function docToArchive(doc: ArchiveDoc): Archive {
     screenshot: doc.screenshot?.url || undefined, // Keep for backward compatibility
     screenshots: screenshots.length > 0 ? screenshots : undefined,
     createdAt: doc.createdAt,
-    loveCount: doc.loveCount || 0,
-    heartbreakCount: doc.heartbreakCount || 0,
+    votes: {
+      loveCount: doc.votes.loveCount || 0,
+      heartbreakCount: doc.votes.heartbreakCount || 0,
+    },
   };
 }
 
@@ -109,8 +115,10 @@ const DUMMY_RECENT_ARCHIVES: Archive[] = [
     text: "A new accountability record has been added for the public archive — every voice should be visible.",
     postedAt: "2026-04-19T14:36:00.000Z",
     createdAt: "2026-04-20T08:20:00.000Z",
-    loveCount: 12,
-    heartbreakCount: 2,
+    votes: {
+      loveCount: 12,
+      heartbreakCount: 2,
+    },
   },
   {
     id: "recent-2",
@@ -118,8 +126,10 @@ const DUMMY_RECENT_ARCHIVES: Archive[] = [
     text: "Verified statement archived from a national figure with screenshot and source link.",
     postedAt: "2026-04-18T11:10:00.000Z",
     createdAt: "2026-04-19T21:05:00.000Z",
-    loveCount: 8,
-    heartbreakCount: 1,
+    votes: {
+      loveCount: 8,
+      heartbreakCount: 1,
+    },
   },
   {
     id: "recent-3",
@@ -127,8 +137,10 @@ const DUMMY_RECENT_ARCHIVES: Archive[] = [
     text: "Community members are building the archive together — this timeline shows the latest additions.",
     postedAt: "2026-04-17T08:45:00.000Z",
     createdAt: "2026-04-18T18:55:00.000Z",
-    loveCount: 15,
-    heartbreakCount: 0,
+    votes: {
+      loveCount: 15,
+      heartbreakCount: 0,
+    },
   },
 ];
 
