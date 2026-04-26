@@ -1,21 +1,30 @@
 import { Link } from "@tanstack/react-router";
+import { Button } from "./ui/button";
+import { ChevronLeft } from "lucide-react";
 
-export function SiteHeader() {
+export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
       <div className="h-1 bg-[image:var(--gradient-flag)]" />
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          {/* <div className="relative h-9 w-9 overflow-hidden rounded-lg shadow-[var(--shadow-elevated)]">
-            <div className="absolute inset-0 bg-[image:var(--gradient-flag)]" />
-          </div> */}
-          <div className="leading-tight">
-            <div className="font-display text-lg font-bold tracking-tight">TRAIL NG</div>
-            {/* <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              Accountability archive
-            </div> */}
-          </div>
-        </Link>
+        {!backBtn && (
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="leading-tight">
+              <div className="font-display text-lg font-bold tracking-tight">TRAIL NG</div>
+            </div>
+          </Link>
+        )}
+
+        {backBtn && (
+          <Button
+            variant="ghost"
+            onClick={() => window.history.back()}
+            className="inline-flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" /> Back
+          </Button>
+        )}
+
         <nav className="flex items-center gap-1 text-sm">
           <Link
             to="/"
