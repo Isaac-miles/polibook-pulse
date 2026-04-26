@@ -23,8 +23,19 @@ export interface ArchiveDoc {
   screenshots?: ScreenshotInfo[]; // New: array of screenshots
   createdAt: string;
   updatedAt: string;
-  loveCount: number;
-  heartbreakCount: number;
+  votes: {                    // ← add this
+    loveCount: number;
+    heartbreakCount: number;
+  };
+}
+
+export interface Comment {
+  _id: string;
+  tweetId: string;
+  author: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PaginatedResponse {
@@ -47,10 +58,10 @@ export interface Archive {
   screenshot?: string; // Kept for backward compatibility
   screenshots?: string[]; // New: array of screenshot URLs
   createdAt: string;
-  loveCount: number;
-  heartbreakCount: number;
-  displayName?: string;
-  username?: string;
+  votes: {                    // ← add this
+    loveCount: number;
+    heartbreakCount: number;
+  };
 }
 
 export interface UserRecord {
@@ -80,10 +91,10 @@ function docToArchive(doc: ArchiveDoc): Archive {
     screenshot: doc.screenshot?.url || undefined, // Keep for backward compatibility
     screenshots: screenshots.length > 0 ? screenshots : undefined,
     createdAt: doc.createdAt,
-    loveCount: doc.loveCount || 0,
-    heartbreakCount: doc.heartbreakCount || 0,
-    displayName: doc.displayName || undefined,
-    username: doc.displayName ? doc.displayName.replace(/\s+/g, "_").toLowerCase() : undefined,
+    votes: {
+      loveCount: doc.votes.loveCount || 0,
+      heartbreakCount: doc.votes.heartbreakCount || 0,
+    },
   };
 }
 
@@ -106,7 +117,41 @@ function docsToUserRecord(docs: ArchiveDoc[]): UserRecord | null {
   };
 }
 
-
+const DUMMY_RECENT_ARCHIVES: Archive[] = [
+  {
+    id: "recent-1",
+    url: "https://twitter.com/example/status/1234567890123456789",
+    text: "A new accountability record has been added for the public archive — every voice should be visible.",
+    postedAt: "2026-04-19T14:36:00.000Z",
+    createdAt: "2026-04-20T08:20:00.000Z",
+    votes: {
+      loveCount: 12,
+      heartbreakCount: 2,
+    },
+  },
+  {
+    id: "recent-2",
+    url: "https://twitter.com/example/status/9876543210987654321",
+    text: "Verified statement archived from a national figure with screenshot and source link.",
+    postedAt: "2026-04-18T11:10:00.000Z",
+    createdAt: "2026-04-19T21:05:00.000Z",
+    votes: {
+      loveCount: 8,
+      heartbreakCount: 1,
+    },
+  },
+  {
+    id: "recent-3",
+    url: "https://twitter.com/example/status/1122334455667788990",
+    text: "Community members are building the archive together — this timeline shows the latest additions.",
+    postedAt: "2026-04-17T08:45:00.000Z",
+    createdAt: "2026-04-18T18:55:00.000Z",
+    votes: {
+      loveCount: 15,
+      heartbreakCount: 0,
+    },
+  },
+];
 
 export async function getRecentArchives(): Promise<Archive[]> {
   try {
@@ -297,7 +342,7 @@ export async function exportAll(): Promise<ArchiveDoc[]> {
 
 export async function voteArchive(
   archiveId: string,
-  voteType: "love" | "hate",
+  voteType: "love" | "heartbreak",
 ): Promise<{ loveCount: number; heartbreakCount: number }> {
   const res = await apiClient.post(`/api/archives/${archiveId}/vote`, { type: voteType });
   return res.data;
@@ -316,4 +361,42 @@ export function downloadJSON(data: unknown, filename = "trail-export.json") {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Comments api for archives
+ */
+
+export async function getComments(tweetId: string): Promise<Comment[]> {
+  try {
+    const res = await apiClient.get(`/api/archives/${tweetId}/comments`);
+    return res.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error ?? `Failed to load comments (${error.response?.status})`);
+  }
+}
+
+
+//Create comment mutation
+export async function createComment(
+  tweetId: string,
+  payload: { author: string; text: string }
+): Promise<Comment> {
+  try {
+    const res = await apiClient.post(`/api/archives/${tweetId}/comments`, payload);
+    return res.data
+  } catch (error:any) {
+    throw new Error(error.response?.data?.error ?? `Failed to post comment (${error.response?.status})`);
+  }
+}
+
+export async function deleteComment(
+  tweetId: string,
+  commentId: string
+): Promise<void> {
+  try {
+    await apiClient.delete(`/api/archives/${tweetId}/comments/${commentId}`);
+  } catch (error:any) {
+    throw new Error(error.response?.data?.error ?? `Failed to delete comment (${error.response?.status})`);
+  }
 }

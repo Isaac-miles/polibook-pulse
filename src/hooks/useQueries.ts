@@ -7,6 +7,9 @@ import {
   createArchive,
   updateArchive,
   deleteArchive,
+  getComments,
+  createComment,
+  deleteComment,
   exportAll,
   captureScreenshot,
   getRecentArchives,
@@ -29,6 +32,9 @@ export const queryKeys = {
     search: (query: string) => ["users", "search", query] as const,
     detail: (displayName: string) => ["users", "detail", displayName] as const,
   },
+   comments: {
+    byTweet: (tweetId: string) => ["comments", tweetId] as const,
+   },
   export: {
     all: ["export", "all"] as const,
   },
@@ -104,7 +110,7 @@ export function useVoteArchive(options?: Record<string, unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ archiveId, voteType }: { archiveId: string; voteType: "love" | "hate" }) =>
+    mutationFn: ({ archiveId, voteType }: { archiveId: string; voteType: "love" | "heartbreak" }) =>
       voteArchive(archiveId, voteType),
     onSuccess: (data, variables) => {
       // Update the cache for recent archives
@@ -175,6 +181,49 @@ export function useDeleteArchive(options?: Record<string, unknown>) {
     ...options,
   });
 }
+
+// get comment mutation
+export function useComments(tweetId: string, options?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: queryKeys.comments.byTweet(tweetId),
+    queryFn: () => getComments(tweetId),
+    enabled: tweetId.length > 0,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    ...options,
+  });
+}
+
+export function useCreateComment(options?: Record<string, unknown>) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ tweetId, payload }: { tweetId: string; payload: { author: string; text: string } }) =>
+      createComment(tweetId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.comments.byTweet(variables.tweetId),
+      });
+    },
+    ...options,
+  });
+}
+
+export function useDeleteComment(options?: Record<string, unknown>) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ tweetId, commentId }: { tweetId: string; commentId: string }) =>
+      deleteComment(tweetId, commentId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.comments.byTweet(variables.tweetId),
+      });
+    },
+    ...options,
+  });
+}
+
 
 // ---- Capture Screenshot Mutation ----
 export function useCaptureScreenshot(options?: Record<string, unknown>) {
