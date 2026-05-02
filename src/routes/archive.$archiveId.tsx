@@ -22,19 +22,34 @@ export const Route = createFileRoute("/archive/$archiveId")({
   }),
   component: ArchiveDetailsPage,
 });
-
 function formatDate(iso?: string | null) {
   if (!iso) return "Unknown date";
   const d = new Date(iso);
+
+  // Basic validation
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
+
+  // Uses 'en-GB' to force the Day/Month/Year order
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
     year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  }).format(d);
 }
+
+// Example Output: 25/04/2026
+// function formatDate(iso?: string | null) {
+//   if (!iso) return "Unknown date";
+//   const d = new Date(iso);
+//   if (isNaN(d.getTime())) return iso;
+//   return d.toLocaleString(undefined, {
+//     year: "numeric",
+//     month: "short",
+//     day: "numeric",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//   });
+// }
 
 function ArchiveDetailsPage() {
   const { archiveId } = Route.useParams();
@@ -157,9 +172,9 @@ function ArchiveDetailsPage() {
               <span className="text-sm">{archive.votes?.heartbreakCount ?? 0}</span>
             </button>
 
-            <span className="text-xs">posted {formatDate(archive.postedOn)}</span>
+            <span className="text-xs">Posted: {formatDate(archive.postedOn)}</span>
             <span className="text-xs text-muted-foreground">
-              archived {formatDate(archive.createdAt)}
+              Archived: {formatDate(archive.createdAt)}
             </span>
 
             {archive.tweetUrl && (
