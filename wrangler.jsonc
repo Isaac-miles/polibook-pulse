@@ -1,9 +1,13 @@
+
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "polibook",
+  "preview_urls": true,
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  "workers_dev": true,
+  "preview_urls": true,
   "routes": [
     {
       "pattern": "wepository.com",
