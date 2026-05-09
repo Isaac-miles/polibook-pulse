@@ -1,17 +1,21 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "polibook",
+  "workers_dev": true,
+  "preview_urls": true,
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "routes": [
     {
       "pattern": "wepository.com",
-      "custom_domain": true
+      "custom_domain": true,
+      "override_existing_dns_record": true
     },
     {
       "pattern": "www.wepository.com",
-      "custom_domain": true
+      "custom_domain": true,
+      "override_existing_dns_record": true
     }
   ]
 }
