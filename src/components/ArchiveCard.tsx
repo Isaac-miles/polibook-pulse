@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Archive } from "@/lib/api";
-import { ExternalLink, ThumbsUp, ThumbsDown, ImageIcon } from "lucide-react";
+import { ExternalLink, ThumbsUp, ThumbsDown, ImageIcon, User } from "lucide-react";
 import { useVoteArchive } from "@/hooks/useQueries";
 import { ScreenshotGrid } from "./ScreenshotGrid";
 
@@ -41,9 +41,32 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
   const screenshots = archive.screenshots || (archive.screenshot ? [archive.screenshot] : []);
 
   return (
-    <Link to={`/archive/${archive.id}`} className="block">
+    <Link to={"/archive/$archiveId"} params={{ archiveId: archive.id }} className="block">
       <article className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5 cursor-pointer">
         <div className="absolute inset-y-0 left-0 w-1 bg-[image:var(--gradient-hero)] opacity-80" />
+
+        {/* Profile header */}
+        {archive.displayName && (
+          <div className="flex items-start gap-3 mb-2 pb-4 ">
+            <div className="h-10 w-10 rounded-full bg-muted shrink-0 flex items-center justify-center">
+              <User className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-foreground">{archive.displayName}</span>
+                {archive.username && (
+                  <span className="text-sm text-muted-foreground">@{archive.username}</span>
+                )}
+                {archive.partyAffiliation && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {archive.partyAffiliation}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <p className="whitespace-pre-wrap pl-2 text-[15px] leading-relaxed text-card-foreground">
           {archive.text}
         </p>
@@ -54,33 +77,31 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
           </div>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2  pt-3 text-xs text-muted-foreground">
           <div className="flex flex-col gap-0.5">
-            <span>
-              <span className="font-medium text-foreground/70">Posted:</span>{" "}
-              {formatDate(archive.postedAt)}
-            </span>
-            <span>
-              <span className="font-medium text-foreground/70">Archived:</span>{" "}
-              {formatDate(archive.createdAt)}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {screenshots.length > 0 && (
-              <span className="inline-flex items-center gap-1 text-muted-foreground">
-                <ImageIcon className="h-3 w-3" />
-                {screenshots.length} {screenshots.length === 1 ? "Screenshot" : "Screenshots"}
+            {archive.postedAt && (
+              <span>
+                <span className="font-medium text-foreground/70">Posted:</span>{" "}
+                {formatDate(archive.postedAt)}
               </span>
             )}
-            {archive.url && (
+            {archive.createdAt && (
+              <span>
+                <span className="font-medium text-foreground/70">Archived:</span>{" "}
+                {formatDate(archive.createdAt)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {archive.screenshotUrl && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   try {
-                    window.open(archive.url, "_blank", "noopener,noreferrer");
+                    window.open(archive.screenshotUrl, "_blank", "noopener,noreferrer");
                   } catch {
-                    window.location.href = archive.url;
+                    window.location.href = archive.screenshotUrl;
                   }
                 }}
                 className="inline-flex items-center gap-1 font-medium text-primary hover:underline"

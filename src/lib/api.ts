@@ -23,7 +23,9 @@ export interface ArchiveDoc {
   screenshots?: ScreenshotInfo[]; // New: array of screenshots
   createdAt: string;
   updatedAt: string;
-  votes: {                    // ← add this
+  screenshotUrl?: string;
+  votes: {
+    // ← add this
     loveCount: number;
     heartbreakCount: number;
   };
@@ -58,10 +60,15 @@ export interface Archive {
   screenshot?: string; // Kept for backward compatibility
   screenshots?: string[]; // New: array of screenshot URLs
   createdAt: string;
-  votes: {                    // ← add this
+  votes: {
+    // ← add this
     loveCount: number;
     heartbreakCount: number;
   };
+  displayName?: string;
+  username?: string;
+  partyAffiliation?: string;
+  screenshotUrl?: string;
 }
 
 export interface UserRecord {
@@ -95,6 +102,10 @@ function docToArchive(doc: ArchiveDoc): Archive {
       loveCount: doc.votes.loveCount || 0,
       heartbreakCount: doc.votes.heartbreakCount || 0,
     },
+    displayName: doc.displayName || undefined,
+    username: doc.displayName.replace(/\s+/g, "_").toLowerCase() || undefined,
+    partyAffiliation: doc.partyAffiliation || undefined,
+    screenshotUrl: doc.screenshotUrl || undefined,
   };
 }
 
@@ -237,6 +248,7 @@ export async function captureScreenshot(url: string): Promise<{ url: string; pub
 
 export async function createArchive(payload: {
   displayName: string;
+  username?: string;
   firstName?: string;
   lastName?: string;
   partyAffiliation?: string;
@@ -251,11 +263,12 @@ export async function createArchive(payload: {
 }): Promise<ArchiveDoc> {
   const fd = new FormData();
   fd.append("displayName", payload.displayName);
+  fd.append("username", payload.username ?? "");
   fd.append("firstName", payload.firstName ?? "");
   fd.append("lastName", payload.lastName ?? "");
   fd.append("partyAffiliation", payload.partyAffiliation ?? "");
   fd.append("notes", payload.notes ?? "");
-  fd.append("tweetUrl", payload.tweetUrl ?? "");
+  fd.append("screenshotUrl", payload.tweetUrl ?? "");
   fd.append("tweetText", payload.tweetText);
   fd.append("postedOn", payload.postedOn ?? "");
 
@@ -372,31 +385,33 @@ export async function getComments(tweetId: string): Promise<Comment[]> {
     const res = await apiClient.get(`/api/archives/${tweetId}/comments`);
     return res.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.error ?? `Failed to load comments (${error.response?.status})`);
+    throw new Error(
+      error.response?.data?.error ?? `Failed to load comments (${error.response?.status})`,
+    );
   }
 }
-
 
 //Create comment mutation
 export async function createComment(
   tweetId: string,
-  payload: { author: string; text: string }
+  payload: { author: string; text: string },
 ): Promise<Comment> {
   try {
     const res = await apiClient.post(`/api/archives/${tweetId}/comments`, payload);
-    return res.data
-  } catch (error:any) {
-    throw new Error(error.response?.data?.error ?? `Failed to post comment (${error.response?.status})`);
+    return res.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.error ?? `Failed to post comment (${error.response?.status})`,
+    );
   }
 }
 
-export async function deleteComment(
-  tweetId: string,
-  commentId: string
-): Promise<void> {
+export async function deleteComment(tweetId: string, commentId: string): Promise<void> {
   try {
     await apiClient.delete(`/api/archives/${tweetId}/comments/${commentId}`);
-  } catch (error:any) {
-    throw new Error(error.response?.data?.error ?? `Failed to delete comment (${error.response?.status})`);
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.error ?? `Failed to delete comment (${error.response?.status})`,
+    );
   }
 }
