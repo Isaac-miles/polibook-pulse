@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, SubmitEventHandler, FormEvent } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ArchiveCard } from "@/components/ArchiveCard";
+import { AddArchiveModal } from "@/components/AddArchiveModal";
 import { useSearchUsers, useRecentArchives } from "@/hooks/useQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +11,13 @@ import { Search, UserCircle2, FileText, Loader2, Star, Plus } from "lucide-react
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Trail — Political Accountability Archive" },
+      { title: "Wepository — Political Accountability Archive" },
       {
         name: "description",
         content:
           "Search any X/Twitter username to view their archived political tweets and public record.",
       },
-      { property: "og:title", content: "Trail — Political Accountability Archive" },
+      { property: "og:title", content: "Wepository — Political Accountability Archive" },
       {
         property: "og:description",
         content: "Public, queryable archive of political statements on X/Twitter.",
@@ -30,6 +31,7 @@ function Index() {
   const [inputValue, setInputValue] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const [searched, setSearched] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
     data: users,
@@ -40,7 +42,7 @@ function Index() {
     enabled: searched && activeQuery.length > 0,
   });
 
-  const { data: recentArchives } = useRecentArchives();
+  const { data: recentArchives, refetch: refetchRecent } = useRecentArchives();
 
   const handleSearch = useCallback(
     (e: FormEvent) => {
@@ -107,7 +109,7 @@ function Index() {
               </span>
             </h1>
 
-            <p className="mt-4 max-w-2xl text-lg leading-8 text-white/90 md:text-xl">
+            <p className="mt-4 max-w-2xl text-md leading-8 text-white/90 md:text-xl">
               A community archive of political statements posted on X/Twitter by Nigerian public
               figures. Search any name, party, or keyword to see what they actually said — with
               timestamps, screenshots, and sources.
@@ -171,7 +173,7 @@ function Index() {
 
             {/* content */}
             <div className="relative">
-              <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 {/* left */}
                 <div className="flex items-start gap-4">
                   <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-green-600 to-emerald-500 text-white shadow-lg">
@@ -188,24 +190,27 @@ function Index() {
                       Community timeline
                     </p>
 
-                    <h2 className="mt-1 text-xl font-semibold text-foreground">
+                    <h2 className="mt-1 text-sm font-semibold text-foreground">
                       Recently added archives
                     </h2>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    {/* <p className="mt-1 text-sm text-muted-foreground">
                       Browse the latest political statements added by the community.
-                    </p>
+                    </p> */}
                   </div>
                 </div>
 
                 {/* right CTA */}
-                <a
-                  href="/upload"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add archive
-                </a>
+                {(!recentArchives || recentArchives.length === 0) && (
+                  <Button
+                    onClick={() => setIsModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted"
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add archive
+                  </Button>
+                )}
               </div>
 
               {/* divider */}
@@ -327,15 +332,29 @@ function Index() {
         )}
       </main>
 
-      <a
+      <Button
+        onClick={() => setIsModalOpen(true)}
+        className="fixed bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition hover:bg-primary/90 sm:bottom-6 sm:right-6"
+      >
+        <Plus className="h-4 w-4" />
+        Add archive
+      </Button>
+      {/* <a
         href="/upload"
         className="fixed bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition hover:bg-primary/90 sm:bottom-6 sm:right-6"
       >
         <Plus className="h-4 w-4" />
         Create archive
-      </a>
+      </a> */}
+
+      <AddArchiveModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        onArchiveAdded={() => refetchRecent()}
+      />
+
       <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-        Trail · A community accountability project
+        Wepository · A community accountability project
       </footer>
     </div>
   );

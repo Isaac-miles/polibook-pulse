@@ -1,6 +1,6 @@
 {
-  "name": "Trail — Political Accountability Archive",
-  "short_name": "Trail",
+  "name": "Wepository — Political Accountability Archive",
+  "short_name": "Wepository",
   "description": "A public archive of political tweets, queryable by username.",
   "start_url": "/",
   "display": "standalone",

@@ -13,7 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 export const Route = createFileRoute("/archive/$archiveId")({
   head: () => ({
     meta: [
-      { title: "Archive Details — Trail" },
+      { title: "Archive Details — Wepository" },
       {
         name: "description",
         content: "View archive details and community discussions.",
@@ -172,21 +172,26 @@ function ArchiveDetailsPage() {
               <span className="text-sm">{archive.votes?.heartbreakCount ?? 0}</span>
             </button>
 
-            <span className="text-xs">Posted: {formatDate(archive.postedOn)}</span>
-            <span className="text-xs text-muted-foreground">
-              Archived: {formatDate(archive.createdAt)}
-            </span>
+            {archive.postedOn && (
+              <span className="text-xs">Posted: {formatDate(archive.postedOn)}</span>
+            )}
 
-            {archive.tweetUrl && (
+            {archive.createdAt && (
+              <span className="text-xs text-muted-foreground">
+                Archived: {formatDate(archive.createdAt)}
+              </span>
+            )}
+
+            {archive.screenshotUrl && (
               <p>
-                <span className="font-medium text-foreground/70">Source:</span>{" "}
+                {/* <span className="font-medium text-foreground/70">Source:</span>{" "} */}
                 <a
-                  href={archive.tweetUrl}
+                  href={archive.screenshotUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-primary hover:underline"
                 >
-                  View on X <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="h-3 w-3" />
                 </a>
               </p>
             )}

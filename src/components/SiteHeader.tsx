@@ -10,7 +10,7 @@ export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
           <Link to="/" className="flex items-center gap-2.5">
             <div className="leading-tight">
               {/* <div className="font-display text-lg font-bold tracking-tight">TRAIL NG</div> */}
-              <img src="/trailng.png" alt="Trail tagline" className="-mt-1 h-10" />
+              <img src="/trailng.png" alt="Wepository tagline" className="-mt-1 h-10" />
             </div>
           </Link>
         )}

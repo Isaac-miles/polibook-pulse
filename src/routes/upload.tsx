@@ -14,12 +14,12 @@ import { Download, Loader2, X, Plus } from "lucide-react";
 export const Route = createFileRoute("/upload")({
   head: () => ({
     meta: [
-      { title: "Upload to archive — Trail" },
+      { title: "Upload to archive — Wepository" },
       {
         name: "description",
         content: "Add a politician and archive a statement to the public accountability record.",
       },
-      { property: "og:title", content: "Upload to archive — Trail" },
+      { property: "og:title", content: "Upload to archive — Wepository" },
       {
         property: "og:description",
         content: "Add a politician and archive a statement to the public accountability record.",
@@ -35,8 +35,6 @@ function UploadPage() {
 
   // new user fields
   const [displayName, setDisplayName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [party, setParty] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -141,7 +139,7 @@ function UploadPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return toast.error("Display name is required");
+    if (!username.trim()) return toast.error("Username is required");
     if (!tweetText.trim()) return toast.error("Statement text is required");
 
     const effectiveDisplayName = foundUser ? foundUser.displayName : displayName.trim();
@@ -152,8 +150,7 @@ function UploadPage() {
 
     createArchiveMutation.mutate({
       displayName: effectiveDisplayName,
-      firstName: (foundUser?.firstName ?? firstName) || undefined,
-      lastName: (foundUser?.lastName ?? lastName) || undefined,
+      username: username.trim(),
       partyAffiliation: (foundUser?.party ?? party) || undefined,
       notes: (foundUser?.notes ?? notes) || undefined,
       tweetUrl: tweetUrl || undefined,
@@ -183,7 +180,7 @@ function UploadPage() {
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold">Add to archive</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter a display name. If they're already in the archive, paste their statement. If not,
+            Enter a username. If they're already in the archive, paste their statement. If not,
             you'll add their basic info first.
           </p>
         </div>
@@ -191,7 +188,7 @@ function UploadPage() {
         <div className="mt-6 space-y-6">
           {/* ---- Step 1: Look up user ---- */}
           <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-            <Label htmlFor="username">Display name</Label>
+            <Label htmlFor="username">Username</Label>
             <div className="mt-2 flex gap-2">
               <Input
                 id="username"
@@ -229,7 +226,7 @@ function UploadPage() {
                 <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
                   <h2 className="font-display text-lg font-semibold">User information</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Only display name is required.
+                    Display name is required. Username will be used for searching.
                   </p>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
@@ -239,24 +236,6 @@ function UploadPage() {
                         required
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        className="mt-1.5"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="first">First name</Label>
-                      <Input
-                        id="first"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="mt-1.5"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="last">Last name</Label>
-                      <Input
-                        id="last"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
                         className="mt-1.5"
                       />
                     </div>
@@ -383,14 +362,14 @@ function UploadPage() {
                     "Save to archive"
                   )}
                 </Button>
-                <Button type="button" variant="outline" onClick={handleExport} disabled={exporting}>
+                {/* <Button type="button" variant="outline" onClick={handleExport} disabled={exporting}>
                   {exporting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <Download className="mr-2 h-4 w-4" />
                   )}
                   Export JSON
-                </Button>
+                </Button> */}
               </div>
             </form>
           )}
