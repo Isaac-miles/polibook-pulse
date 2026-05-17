@@ -131,9 +131,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add to archive</DialogTitle>
-          <DialogDescription>
-            Archive a political statement with details and screenshots.
-          </DialogDescription>
+          <DialogDescription>Archive a statement with details and screenshots.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSave} className="space-y-6">
@@ -218,7 +216,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
           {checked && (
             <>
               <div className="space-y-3">
-                <Label htmlFor="tweetText">Statement text</Label>
+                <Label htmlFor="tweetText">Text</Label>
                 <Textarea
                   id="tweetText"
                   placeholder="The text of the political statement"
@@ -230,7 +228,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="tweetUrl">Statement URL (optional)</Label>
+                <Label htmlFor="tweetUrl">Source URL</Label>
                 <Input
                   id="tweetUrl"
                   type="url"
@@ -240,7 +238,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
                 />
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-w-sm">
                 <Label htmlFor="postedAt">Posted date (optional)</Label>
                 <Input
                   id="postedAt"
