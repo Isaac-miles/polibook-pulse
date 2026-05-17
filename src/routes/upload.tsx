@@ -278,7 +278,7 @@ function UploadPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="text">Statement text *</Label>
+                    <Label htmlFor="text">Text *</Label>
                     <Textarea
                       id="text"
                       required

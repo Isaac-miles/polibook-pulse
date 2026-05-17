@@ -96,8 +96,8 @@ function Index() {
         <div className="relative mx-auto max-w-6xl px-4 py-12">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.25em] text-white backdrop-blur-md">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
-            Public Record · Nigeria on the trail
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" /> Community Archive
+            · Public Record
           </div>
 
           {/* Main content */}
@@ -110,8 +110,8 @@ function Index() {
             </h1>
 
             <p className="mt-4 max-w-2xl text-md leading-8 text-white/90 md:text-xl">
-              A community archive of political statements posted on X/Twitter by Nigerian public
-              figures. Search any name, party, or keyword to see what they actually said — with
+              A community archive of public statements posted on X/Twitter by Nigerian public
+              figures. Search by username, party, or keyword to view documented statements with
               timestamps, screenshots, and sources.
             </p>
           </div>
@@ -119,7 +119,7 @@ function Index() {
           {/* Search bar */}
           <form
             onSubmit={handleSearch}
-            className="mt-10 flex flex-col gap-3 rounded-3xl bg-white/95 p-3 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:rounded-full"
+            className="mt-10 flex flex-col gap-3 rounded-3xl bg-white/95 p-2 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:rounded-full"
           >
             {/* Input */}
             <div className="flex w-full items-center gap-2 px-2 py-1 sm:flex-1 sm:px-2 sm:py-2 ">
@@ -128,7 +128,7 @@ function Index() {
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Search by name, party, or keyword..."
+                placeholder="Search by username, party, or keyword..."
                 className="border-0 bg-transparent text-base shadow-none focus-visible:ring-0 placeholder:text-muted-foreground sm:text-lg"
               />
             </div>
@@ -152,10 +152,10 @@ function Index() {
 
           {/* Feature pills */}
           <div className="mt-6 flex flex-wrap gap-3">
-            {["Timestamps", "Screenshots", "Sources", "Community verified"].map((item) => (
+            {["Community verified", "Timestamps", "Sources"].map((item) => (
               <span
                 key={item}
-                className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-md"
+                className="rounded-full border border-white/10 bg-white/10 px-2 py-2 text-sm text-white backdrop-blur-md"
               >
                 {item}
               </span>
