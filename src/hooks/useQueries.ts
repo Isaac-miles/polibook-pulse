@@ -18,6 +18,7 @@ import {
   type UserRecord,
   Archive,
 } from "../lib/api";
+import { isValidSearchQuery, isValidUsername } from "../lib/validators";
 
 // Query keys
 export const queryKeys = {
@@ -42,17 +43,20 @@ export const queryKeys = {
 
 // ---- Search Users (fuzzy, multi-result — for index page) ----
 export function useSearchUsers(query: string, options?: Record<string, unknown>) {
+  const { enabled: enabledOption, ...restOptions } = options ?? {};
+  const extraEnabled = enabledOption !== false;
+
   return useQuery({
     queryKey: queryKeys.users.search(query),
     queryFn: () => searchUsers(query),
-    enabled: query.length > 0,
+    enabled: query.length > 0 && isValidSearchQuery(query) && extraEnabled,
     staleTime: 0, // always refetch when query is re-triggered
     gcTime: 5 * 60 * 1000,
-    ...options,
+    retry: false,
+    ...restOptions,
   });
 }
 
-// ---- Search Tweets Query ----
 // ---- Search Archives Query ----
 export function useSearchArchives(
   query: string,
@@ -60,25 +64,33 @@ export function useSearchArchives(
   limit = 100,
   options?: Record<string, unknown>,
 ) {
+  const { enabled: enabledOption, ...restOptions } = options ?? {};
+  const extraEnabled = enabledOption !== false;
+
   return useQuery({
     queryKey: queryKeys.archives.search(query, page, limit),
     queryFn: () => searchArchives(query, { page, limit }),
-    enabled: query.length > 0,
+    enabled: query.length > 0 && isValidSearchQuery(query) && extraEnabled,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
-    ...options,
+    retry: false,
+    ...restOptions,
   });
 }
 
 // ---- Get User (exact match — for upload page check) ----
 export function useGetUser(displayName: string, options?: Record<string, unknown>) {
+  const { enabled: enabledOption, ...restOptions } = options ?? {};
+  const extraEnabled = enabledOption !== false;
+
   return useQuery({
     queryKey: queryKeys.users.detail(displayName),
     queryFn: () => getUser(displayName),
-    enabled: displayName.length > 0,
+    enabled: displayName.length > 0 && isValidUsername(displayName) && extraEnabled,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
-    ...options,
+    retry: false,
+    ...restOptions,
   });
 }
 

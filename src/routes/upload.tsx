@@ -7,9 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadJSON, type UserRecord, type ArchiveDoc } from "@/lib/api";
 import { useGetUser, useCreateArchive, useExportAll } from "@/hooks/useQueries";
+import {
+  usernameSchema,
+  displayNameSchema,
+  urlSchema,
+  partySchema,
+  statementTextSchema,
+  notesSchema,
+  validateSchema,
+} from "@/lib/validators";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Download, Loader2, X, Plus } from "lucide-react";
+import { Download, Loader2, X, Plus, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
@@ -45,12 +54,24 @@ function UploadPage() {
   const [screenshotFiles, setScreenshotFiles] = useState<File[]>([]);
   const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
 
+  // Validation errors
+  const [errors, setErrors] = useState<{
+    username?: string;
+    displayName?: string;
+    party?: string;
+    notes?: string;
+    tweetUrl?: string;
+    tweetText?: string;
+  }>({});
+
   const MAX_SCREENSHOTS = 8;
   const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 
   // Use React Query hooks
-  const { data: foundUser, isLoading: checking } = useGetUser(checked ? username : "", {
-    enabled: checked && username.length > 0,
+  const usernameValid = validateSchema(usernameSchema, username.trim()).valid;
+
+  const { data: foundUser, isLoading: checking } = useGetUser(checked ? username.trim() : "", {
+    enabled: checked && username.trim().length > 0 && usernameValid,
   });
 
   const router = useRouter();
@@ -63,6 +84,7 @@ function UploadPage() {
       setPostedAt("");
       setScreenshotFiles([]);
       setScreenshotPreviews([]);
+      setErrors({});
       toast.success("Archived successfully");
       router.navigate({ to: "/" });
     },
@@ -80,42 +102,96 @@ function UploadPage() {
     enabled: false,
   });
 
-  // Show toast when user is found
+  // Real-time validation for username
   useEffect(() => {
-    if (checked && !checking && foundUser) {
-      toast.success(`Found ${foundUser.displayName} — ${foundUser.archives.length} archive(s)`);
-    } else if (checked && !checking && !foundUser) {
-      toast.message("New user — fill in their info below");
+    if (!username.trim()) {
+      setErrors((prev) => ({ ...prev, username: undefined }));
+      return;
     }
-  }, [checked, checking, foundUser]);
+    const validation = validateSchema(usernameSchema, username);
+    setErrors((prev) => ({ ...prev, username: validation.valid ? undefined : validation.error }));
+  }, [username]);
+
+  // Real-time validation for displayName
+  useEffect(() => {
+    if (!displayName.trim()) {
+      setErrors((prev) => ({ ...prev, displayName: undefined }));
+      return;
+    }
+    const validation = validateSchema(displayNameSchema, displayName);
+    setErrors((prev) => ({ ...prev, displayName: validation.valid ? undefined : validation.error }));
+  }, [displayName]);
+
+  // Real-time validation for party
+  useEffect(() => {
+    if (!party.trim()) {
+      setErrors((prev) => ({ ...prev, party: undefined }));
+      return;
+    }
+    const validation = validateSchema(partySchema, party);
+    setErrors((prev) => ({ ...prev, party: validation.valid ? undefined : validation.error }));
+  }, [party]);
+
+  // Real-time validation for notes
+  useEffect(() => {
+    if (!notes.trim()) {
+      setErrors((prev) => ({ ...prev, notes: undefined }));
+      return;
+    }
+    const validation = validateSchema(notesSchema, notes);
+    setErrors((prev) => ({ ...prev, notes: validation.valid ? undefined : validation.error }));
+  }, [notes]);
+
+  // Real-time validation for tweetUrl
+  useEffect(() => {
+    if (!tweetUrl.trim()) {
+      setErrors((prev) => ({ ...prev, tweetUrl: undefined }));
+      return;
+    }
+    const validation = validateSchema(urlSchema, tweetUrl);
+    setErrors((prev) => ({ ...prev, tweetUrl: validation.valid ? undefined : validation.error }));
+  }, [tweetUrl]);
+
+  // Real-time validation for tweetText
+  useEffect(() => {
+    if (!tweetText.trim()) {
+      setErrors((prev) => ({ ...prev, tweetText: undefined }));
+      return;
+    }
+    const validation = validateSchema(statementTextSchema, tweetText);
+    setErrors((prev) => ({ ...prev, tweetText: validation.valid ? undefined : validation.error }));
+  }, [tweetText]);
+
+  const handleCheck = () => {
+    const validation = validateSchema(usernameSchema, username);
+    if (!validation.valid) {
+      setErrors((prev) => ({ ...prev, username: validation.error }));
+      setChecked(false);
+      return;
+    }
+    setChecked(true);
+  };
 
   const handleScreenshots = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+    if (!files) return;
 
     const newFiles: File[] = [];
     const newPreviews: string[] = [];
 
-    for (let i = 0; i < files.length; i++) {
+    for (let i = 0; i < files.length && screenshotFiles.length + newFiles.length < MAX_SCREENSHOTS; i++) {
       const file = files[i];
-
-      // Check for max file size
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`"${file.name}" is too large — maximum 4 MB per image`);
+        toast.error(`File ${file.name} is larger than 4 MB`);
         continue;
       }
-
-      // Check for max number of files
-      if (screenshotFiles.length + newFiles.length >= MAX_SCREENSHOTS) {
-        toast.error(`Maximum ${MAX_SCREENSHOTS} screenshots allowed`);
-        break;
+      if (!file.type.startsWith("image/")) {
+        toast.error(`File ${file.name} is not an image`);
+        continue;
       }
-
       newFiles.push(file);
-
-      // Create preview
       const reader = new FileReader();
-      reader.onload = () => {
-        setScreenshotPreviews((prev) => [...prev, reader.result as string]);
+      reader.onload = (e) => {
+        setScreenshotPreviews((prev) => [...prev, e.target?.result as string]);
       };
       reader.readAsDataURL(file);
     }
@@ -128,33 +204,60 @@ function UploadPage() {
     setScreenshotPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleCheck = async () => {
-    const q = username.trim();
-    if (!q) {
-      toast.error("Enter a display name first");
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    // Validate all required fields
+    const usernameVal = validateSchema(usernameSchema, username);
+    if (!usernameVal.valid && username.trim()) {
+      toast.error(usernameVal.error);
       return;
     }
-    setChecked(true);
-  };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return toast.error("Username is required");
-    if (!tweetText.trim()) return toast.error("Statement text is required");
+    const textVal = validateSchema(statementTextSchema, tweetText);
+    if (!textVal.valid) {
+      toast.error(textVal.error);
+      return;
+    }
+
+    const urlVal = validateSchema(urlSchema, tweetUrl);
+    if (!urlVal.valid && tweetUrl.trim()) {
+      toast.error(urlVal.error);
+      return;
+    }
+
+    // Validate display name for new users
+    if (!foundUser) {
+      const displayNameVal = validateSchema(displayNameSchema, displayName);
+      if (!displayNameVal.valid) {
+        toast.error(displayNameVal.error);
+        return;
+      }
+    }
+
+    // Validate party if provided
+    const partyVal = validateSchema(partySchema, party);
+    if (!partyVal.valid && party.trim()) {
+      toast.error(partyVal.error);
+      return;
+    }
+
+    // Validate notes if provided
+    const notesVal = validateSchema(notesSchema, notes);
+    if (!notesVal.valid && notes.trim()) {
+      toast.error(notesVal.error);
+      return;
+    }
 
     const effectiveDisplayName = foundUser ? foundUser.displayName : displayName.trim();
-
-    if (!foundUser && !effectiveDisplayName) {
-      return toast.error("Display name is required for new users");
-    }
 
     createArchiveMutation.mutate({
       displayName: effectiveDisplayName,
       username: username.trim(),
-      partyAffiliation: (foundUser?.party ?? party) || undefined,
-      notes: (foundUser?.notes ?? notes) || undefined,
-      tweetUrl: tweetUrl || undefined,
-      tweetText,
+      partyAffiliation: (foundUser?.party ?? party.trim()) || undefined,
+      notes: (foundUser?.notes ?? notes.trim()) || undefined,
+      tweetUrl: tweetUrl.trim() || undefined,
+      tweetText: tweetText.trim(),
       postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
       screenshots: screenshotFiles.length > 0 ? screenshotFiles : undefined,
     });
@@ -199,10 +302,20 @@ function UploadPage() {
                   setChecked(false);
                 }}
               />
-              <Button type="button" onClick={handleCheck} disabled={checking}>
+              <Button
+                type="button"
+                onClick={handleCheck}
+                disabled={checking || !!errors.username || !username.trim()}
+              >
                 {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check"}
               </Button>
             </div>
+            {errors.username && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                {errors.username}
+              </div>
+            )}
             {checked && foundUser && (
               <p className="mt-3 text-sm text-foreground">
                 ✓ Existing user: <strong>{foundUser.displayName}</strong>{" "}
@@ -238,6 +351,12 @@ function UploadPage() {
                         onChange={(e) => setDisplayName(e.target.value)}
                         className="mt-1.5"
                       />
+                      {errors.displayName && (
+                        <div className="mt-1.5 flex items-center gap-2 text-sm text-destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.displayName}
+                        </div>
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <Label htmlFor="party">Party / affiliation</Label>
@@ -247,6 +366,12 @@ function UploadPage() {
                         onChange={(e) => setParty(e.target.value)}
                         className="mt-1.5"
                       />
+                      {errors.party && (
+                        <div className="mt-1.5 flex items-center gap-2 text-sm text-destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.party}
+                        </div>
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <Label htmlFor="notes">Notes</Label>
@@ -257,6 +382,12 @@ function UploadPage() {
                         className="mt-1.5"
                         rows={2}
                       />
+                      {errors.notes && (
+                        <div className="mt-1.5 flex items-center gap-2 text-sm text-destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.notes}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -276,6 +407,12 @@ function UploadPage() {
                       onChange={(e) => setTweetUrl(e.target.value)}
                       className="mt-1.5"
                     />
+                    {errors.tweetUrl && (
+                      <div className="mt-1.5 flex items-center gap-2 text-sm text-destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.tweetUrl}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="text">Text *</Label>
@@ -288,6 +425,12 @@ function UploadPage() {
                       onChange={(e) => setTweetText(e.target.value)}
                       className="mt-1.5"
                     />
+                    {errors.tweetText && (
+                      <div className="mt-1.5 flex items-center gap-2 text-sm text-destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.tweetText}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="posted">Posted on (optional)</Label>
