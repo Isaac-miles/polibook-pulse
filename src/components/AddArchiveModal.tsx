@@ -21,7 +21,7 @@ import {
   validateSchema,
 } from "@/lib/validators";
 import { toast } from "sonner";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, X } from "lucide-react";
 
 interface AddArchiveModalProps {
   open: boolean;
@@ -43,6 +43,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
   const [tweetText, setTweetText] = useState("");
   const [postedAt, setPostedAt] = useState("");
   const [screenshotFiles, setScreenshotFiles] = useState<File[]>([]);
+  const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
 
   // Validation errors
   const [errors, setErrors] = useState<{
@@ -76,6 +77,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
       setTweetText("");
       setPostedAt("");
       setScreenshotFiles([]);
+      setScreenshotPreviews([]);
       setErrors({});
       toast.success("Archived successfully");
       onOpenChange(false);
@@ -104,7 +106,10 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
       return;
     }
     const validation = validateSchema(displayNameSchema, displayName);
-    setErrors((prev) => ({ ...prev, displayName: validation.valid ? undefined : validation.error }));
+    setErrors((prev) => ({
+      ...prev,
+      displayName: validation.valid ? undefined : validation.error,
+    }));
   }, [displayName]);
 
   // Real-time validation for party
@@ -161,6 +166,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
     if (!files || files.length === 0) return;
 
     const newFiles: File[] = [];
+    const newPreviews: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -170,12 +176,22 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
         continue;
       }
 
+      if (!file.type.startsWith("image/")) {
+        toast.error(`"${file.name}" is not an image`);
+        continue;
+      }
+
       if (screenshotFiles.length + newFiles.length >= MAX_SCREENSHOTS) {
         toast.error(`Maximum ${MAX_SCREENSHOTS} screenshots allowed`);
         break;
       }
 
       newFiles.push(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setScreenshotPreviews((prev) => [...prev, e.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
     }
 
     setScreenshotFiles((prev) => [...prev, ...newFiles]);
@@ -183,6 +199,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
 
   const removeScreenshot = (index: number) => {
     setScreenshotFiles((prev) => prev.filter((_, i) => i !== index));
+    setScreenshotPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const isFormValid = () => {
@@ -254,9 +271,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
                     setChecked(false);
                   }}
                   disabled={checking}
-                  className={`${
-                    errors.username ? "border-red-500 border-2" : ""
-                  }`}
+                  className={`${errors.username ? "border-red-500 border-2" : ""}`}
                 />
                 {errors.username && (
                   <div className="flex items-center gap-1 mt-1 text-sm text-red-600">
@@ -406,7 +421,7 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
 
               {/* Screenshots */}
               <div className="space-y-3">
-                <Label htmlFor="screenshots">Screenshots (optional)</Label>
+                <Label htmlFor="screenshots">Screenshots (optional, max 8, 4 MB each)</Label>
                 <Input
                   id="screenshots"
                   type="file"
@@ -415,9 +430,38 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
                   onChange={(e) => handleScreenshots(e.currentTarget.files)}
                   disabled={screenshotFiles.length >= MAX_SCREENSHOTS}
                 />
-                {screenshotFiles.length > 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    {screenshotFiles.length} file(s) selected
+                <p className="text-xs text-muted-foreground">
+                  {screenshotFiles.length}/{MAX_SCREENSHOTS} screenshots selected
+                </p>
+
+                {/* Screenshot previews grid */}
+                {screenshotPreviews.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <h3 className="text-sm font-medium text-foreground">Selected screenshots:</h3>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {screenshotPreviews.map((preview, index) => (
+                        <div
+                          key={index}
+                          className="group relative overflow-hidden rounded-lg border border-border bg-muted"
+                        >
+                          <img
+                            src={preview}
+                            alt={`Screenshot ${index + 1}`}
+                            className="aspect-square w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeScreenshot(index)}
+                            className="absolute inset-0 flex items-center justify-center bg-foreground/0 transition-colors group-hover:bg-foreground/20"
+                            title="Delete screenshot"
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/90 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                              <X className="h-4 w-4" />
+                            </div>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
