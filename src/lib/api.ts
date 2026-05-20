@@ -12,6 +12,7 @@ export interface ScreenshotInfo {
 export interface ArchiveDoc {
   _id: string;
   displayName: string;
+  username?: string;
   firstName: string;
   lastName: string;
   partyAffiliation: string;
@@ -25,7 +26,6 @@ export interface ArchiveDoc {
   updatedAt: string;
   screenshotUrl?: string;
   votes: {
-    // ← add this
     loveCount: number;
     heartbreakCount: number;
   };
@@ -61,7 +61,6 @@ export interface Archive {
   screenshots?: string[]; // New: array of screenshot URLs
   createdAt: string;
   votes: {
-    // ← add this
     loveCount: number;
     heartbreakCount: number;
   };
@@ -103,7 +102,7 @@ function docToArchive(doc: ArchiveDoc): Archive {
       heartbreakCount: doc.votes.heartbreakCount || 0,
     },
     displayName: doc.displayName || undefined,
-    username: doc.displayName.replace(/\s+/g, "_").toLowerCase() || undefined,
+    username: doc.username || undefined,
     partyAffiliation: doc.partyAffiliation || undefined,
     screenshotUrl: doc.screenshotUrl || undefined,
   };
@@ -118,7 +117,7 @@ function docsToUserRecord(docs: ArchiveDoc[]): UserRecord | null {
 
   const first = docs[0];
   return {
-    username: first.displayName.replace(/\s+/g, "_").toLowerCase(),
+    username: first.username || first.displayName.replace(/\s+/g, "_").toLowerCase(),
     displayName: first.displayName,
     firstName: first.firstName || undefined,
     lastName: first.lastName || undefined,
@@ -231,7 +230,11 @@ export async function searchUsers(query: string): Promise<UserRecord[]> {
 export async function getUser(displayName: string): Promise<UserRecord | null> {
   const { data } = await searchArchives(displayName, { limit: 200 });
 
-  const exact = data.filter((d) => d.displayName.toLowerCase() === displayName.toLowerCase());
+  const exact = data.filter(
+    (d) =>
+      d.username?.toLowerCase() === displayName.toLowerCase() ||
+      d.displayName.toLowerCase() === displayName.toLowerCase(),
+  );
 
   return docsToUserRecord(exact);
 }
@@ -244,6 +247,33 @@ export async function getArchive(id: string): Promise<ArchiveDoc> {
 export async function captureScreenshot(url: string): Promise<{ url: string; publicId: string }> {
   const res = await apiClient.post("/api/screenshots", { url });
   return res.data;
+}
+
+/**
+ * Fetch basic tweet metadata using Twitter/X oEmbed publish endpoint.
+ * Returns the raw oEmbed JSON which includes `author_name`, `author_url`, and `html`.
+ */
+export async function fetchTweetMetadata(
+  url: string,
+): Promise<{ author_name?: string; author_url?: string; html?: string }> {
+  const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`;
+
+  const res = await fetch(oembedUrl, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Invalid source URL: tweet not found or metadata unavailable.");
+  }
+
+  const data = await res.json();
+  if (!data || typeof data !== "object" || !data.html) {
+    throw new Error("Invalid source URL: tweet not found or metadata unavailable.");
+  }
+
+  return data;
 }
 
 export async function createArchive(payload: {
@@ -268,7 +298,7 @@ export async function createArchive(payload: {
   fd.append("lastName", payload.lastName ?? "");
   fd.append("partyAffiliation", payload.partyAffiliation ?? "");
   fd.append("notes", payload.notes ?? "");
-  fd.append("screenshotUrl", payload.tweetUrl ?? "");
+  fd.append("tweetUrl", payload.tweetUrl ?? "");
   fd.append("tweetText", payload.tweetText);
   fd.append("postedOn", payload.postedOn ?? "");
 

@@ -21,10 +21,7 @@ export const displayNameSchema = z
   .string()
   .min(2, "Display name must be at least 2 characters long.")
   .max(100, "Display name must be at most 100 characters long.")
-  .regex(
-    /^[a-zA-Z0-9\s\-_'.àáâãäåèéêëìíîïòóôõöùúûüñç]+$/,
-    "Display name contains invalid characters.",
-  );
+  .regex(/^[\p{L}\p{N}\p{P}\p{M}\s]+$/u, "Display name contains invalid characters.");
 
 export const urlSchema = z.string().url("Invalid URL format.");
 
