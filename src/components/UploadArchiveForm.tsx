@@ -1,0 +1,624 @@
+import { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { fetchTweetMetadata, type ArchiveDoc } from "@/lib/api";
+import { useGetUser, useCreateArchive } from "@/hooks/useQueries";
+import {
+  usernameSchema,
+  displayNameSchema,
+  urlSchema,
+  partySchema,
+  statementTextSchema,
+  notesSchema,
+  validateSchema,
+} from "@/lib/validators";
+import { toast } from "sonner";
+import { Loader2, AlertCircle } from "lucide-react";
+
+interface UploadArchiveFormProps {
+  submitLabel?: string;
+  onSuccess?: () => void;
+  onDraftStateChange?: (hasDraft: boolean) => void;
+}
+
+const MAX_SCREENSHOTS = 8;
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
+
+function extractUsernameFromTweetUrl(urlString: string) {
+  try {
+    const url = new URL(urlString);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length === 0) return "";
+    return parts[0].replace("@", "");
+  } catch {
+    return "";
+  }
+}
+
+function parseTweetTextFromHtml(html: string) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const blockquote = doc.querySelector("blockquote");
+    let text = blockquote?.textContent?.trim() || doc.body.textContent?.trim() || "";
+    if (!text) return "";
+    return text.replace(/\s+/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+
+function parseTweetDateFromHtml(html: string) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const anchor = doc.querySelector("a");
+    const rawDate = anchor?.textContent?.trim();
+    if (!rawDate) return "";
+    const date = new Date(rawDate);
+    if (isNaN(date.getTime())) return "";
+    return date.toISOString().slice(0, 16);
+  } catch {
+    return "";
+  }
+}
+
+export function UploadArchiveForm({
+  submitLabel = "Save to archive",
+  onSuccess,
+  onDraftStateChange,
+}: UploadArchiveFormProps) {
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [party, setParty] = useState("");
+  const [notes, setNotes] = useState("");
+  const [tweetUrl, setTweetUrl] = useState("");
+  const [tweetText, setTweetText] = useState("");
+  const [postedAt, setPostedAt] = useState("");
+  const [screenshotFiles, setScreenshotFiles] = useState<File[]>([]);
+  const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
+  const [errors, setErrors] = useState<{
+    username?: string;
+    displayName?: string;
+    party?: string;
+    notes?: string;
+    tweetUrl?: string;
+    tweetText?: string;
+  }>({});
+  const [metadataFetched, setMetadataFetched] = useState(false);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+
+  const hasDraftData = useMemo(
+    () =>
+      metadataFetched ||
+      username.trim() !== "" ||
+      displayName.trim() !== "" ||
+      party.trim() !== "" ||
+      notes.trim() !== "" ||
+      tweetUrl.trim() !== "" ||
+      tweetText.trim() !== "" ||
+      postedAt.trim() !== "" ||
+      screenshotFiles.length > 0 ||
+      screenshotPreviews.length > 0,
+    [
+      metadataFetched,
+      username,
+      displayName,
+      party,
+      notes,
+      tweetUrl,
+      tweetText,
+      postedAt,
+      screenshotFiles.length,
+      screenshotPreviews.length,
+    ],
+  );
+
+  useEffect(() => {
+    onDraftStateChange?.(hasDraftData);
+  }, [hasDraftData, onDraftStateChange]);
+
+  // Persist draft to localStorage so saved drafts survive closing the modal
+  useEffect(() => {
+    const draftKey = "archiveDraft";
+    if (hasDraftData) {
+      try {
+        const payload = JSON.stringify({
+          tweetUrl,
+          username,
+          displayName,
+          party,
+          notes,
+          tweetText,
+          postedAt,
+          metadataFetched,
+          screenshotPreviews,
+        });
+        localStorage.setItem(draftKey, payload);
+      } catch (err) {
+        console.warn("Failed to persist draft", err);
+      }
+    } else {
+      localStorage.removeItem(draftKey);
+    }
+  }, [hasDraftData, tweetUrl, username, displayName, party, notes, tweetText, postedAt, metadataFetched, screenshotPreviews]);
+
+  // Load existing draft on mount (if any). This ensures re-opening the modal restores the draft.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("archiveDraft");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<{
+        tweetUrl: string;
+        username: string;
+        displayName: string;
+        party: string;
+        notes: string;
+        tweetText: string;
+        postedAt: string;
+        metadataFetched: boolean;
+        screenshotPreviews: string[];
+      }>;
+
+      if (saved.tweetUrl) setTweetUrl(saved.tweetUrl);
+      if (saved.username) setUsername(saved.username);
+      if (saved.displayName) setDisplayName(saved.displayName);
+      if (saved.party) setParty(saved.party);
+      if (saved.notes) setNotes(saved.notes);
+      if (saved.tweetText) setTweetText(saved.tweetText);
+      if (saved.postedAt) setPostedAt(saved.postedAt);
+      if (Array.isArray(saved.screenshotPreviews) && saved.screenshotPreviews.length > 0)
+        setScreenshotPreviews(saved.screenshotPreviews);
+      if (saved.metadataFetched) setMetadataFetched(true);
+    } catch (err) {
+      // ignore parse errors
+    }
+  }, []);
+
+  const usernameValid = validateSchema(usernameSchema, username.trim()).valid;
+
+  const { data: foundUser, isLoading: loadingUser } = useGetUser(username.trim(), {
+    enabled: metadataFetched && username.trim().length > 0 && usernameValid,
+  });
+
+  const createArchiveMutation = useCreateArchive({
+    onSuccess: () => {
+      toast.success("Archived successfully");
+      onSuccess?.();
+    },
+    onError: (err: Error) => {
+      const msg = err instanceof Error ? err.message : "Save failed";
+      toast.error(msg);
+    },
+  });
+
+  useEffect(() => {
+    if (!username.trim()) {
+      setErrors((prev) => ({ ...prev, username: undefined }));
+      return;
+    }
+    const validation = validateSchema(usernameSchema, username);
+    setErrors((prev) => ({ ...prev, username: validation.valid ? undefined : validation.error }));
+  }, [username]);
+
+  useEffect(() => {
+    if (!displayName.trim()) {
+      setErrors((prev) => ({ ...prev, displayName: undefined }));
+      return;
+    }
+    const validation = validateSchema(displayNameSchema, displayName);
+    setErrors((prev) => ({ ...prev, displayName: validation.valid ? undefined : validation.error }));
+  }, [displayName]);
+
+  useEffect(() => {
+    if (!party.trim()) {
+      setErrors((prev) => ({ ...prev, party: undefined }));
+      return;
+    }
+    const validation = validateSchema(partySchema, party);
+    setErrors((prev) => ({ ...prev, party: validation.valid ? undefined : validation.error }));
+  }, [party]);
+
+  useEffect(() => {
+    if (!notes.trim()) {
+      setErrors((prev) => ({ ...prev, notes: undefined }));
+      return;
+    }
+    const validation = validateSchema(notesSchema, notes);
+    setErrors((prev) => ({ ...prev, notes: validation.valid ? undefined : validation.error }));
+  }, [notes]);
+
+  useEffect(() => {
+    if (!tweetUrl.trim()) {
+      setErrors((prev) => ({ ...prev, tweetUrl: undefined }));
+      return;
+    }
+    const validation = validateSchema(urlSchema, tweetUrl);
+    setErrors((prev) => ({ ...prev, tweetUrl: validation.valid ? undefined : validation.error }));
+  }, [tweetUrl]);
+
+  useEffect(() => {
+    if (!tweetText.trim()) {
+      setErrors((prev) => ({ ...prev, tweetText: undefined }));
+      return;
+    }
+    const validation = validateSchema(statementTextSchema, tweetText);
+    setErrors((prev) => ({ ...prev, tweetText: validation.valid ? undefined : validation.error }));
+  }, [tweetText]);
+
+  const handleFetchUrl = async () => {
+    const val = validateSchema(urlSchema, tweetUrl.trim());
+    if (!val.valid) {
+      setErrors((prev) => ({ ...prev, tweetUrl: val.error }));
+      toast.error(val.error);
+      return;
+    }
+
+    setIsFetchingUrl(true);
+    try {
+      const data = await fetchTweetMetadata(tweetUrl.trim());
+      const fetchedUsername = data.author_url
+        ? data.author_url.split("/").filter(Boolean).pop() || ""
+        : extractUsernameFromTweetUrl(tweetUrl.trim());
+      const fetchedDisplayName = data.author_name || fetchedUsername || "";
+      const parsedText = parseTweetTextFromHtml(data.html || "");
+      const parsedPostedAt = parseTweetDateFromHtml(data.html || "");
+
+      if (!fetchedUsername) {
+        toast.error("Invalid source URL: could not determine the tweet author.");
+        return;
+      }
+
+      if (!parsedText) {
+        toast.error("Invalid source URL: tweet text could not be extracted from metadata.");
+        return;
+      }
+
+      // Always trust the URL-author mapping. Populate username/displayName from URL/oEmbed.
+      setUsername(fetchedUsername);
+      setDisplayName(fetchedDisplayName);
+      setTweetText(parsedText);
+      setPostedAt(parsedPostedAt);
+      setMetadataFetched(true);
+      setErrors((prev) => ({ ...prev, tweetUrl: undefined, username: undefined }));
+
+      if (!parsedPostedAt) {
+        toast.info("No published date was available from the tweet metadata.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Invalid source URL: tweet not found or metadata unavailable.";
+      setErrors((prev) => ({ ...prev, tweetUrl: msg }));
+      toast.error(msg);
+    } finally {
+      setIsFetchingUrl(false);
+    }
+  };
+
+  const handleScreenshots = (files: FileList | null) => {
+    if (!files) return;
+
+    const newFiles: File[] = [];
+    const newPreviews: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`\"${file.name}\" is too large — maximum 4 MB per image`);
+        continue;
+      }
+      if (!file.type.startsWith("image/")) {
+        toast.error(`\"${file.name}\" is not an image`);
+        continue;
+      }
+      if (screenshotFiles.length + newFiles.length >= MAX_SCREENSHOTS) {
+        toast.error(`Maximum ${MAX_SCREENSHOTS} screenshots allowed`);
+        break;
+      }
+      newFiles.push(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setScreenshotPreviews((prev) => [...prev, e.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    setScreenshotFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const removeScreenshot = (index: number) => {
+    setScreenshotFiles((prev) => prev.filter((_, i) => i !== index));
+    setScreenshotPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const isFormValid = () => {
+    if (!metadataFetched) return false;
+    if (!username.trim()) return false;
+    if (errors.username) return false;
+    if (!tweetText.trim()) return false;
+    if (errors.tweetText) return false;
+    if (!foundUser && !displayName.trim()) return false;
+    if (!foundUser && errors.displayName) return false;
+    if (errors.party) return false;
+    if (errors.notes) return false;
+    if (errors.tweetUrl) return false;
+    return true;
+  };
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!isFormValid()) {
+      toast.error("Please fix all errors before saving");
+      return;
+    }
+
+    const effectiveDisplayName = foundUser ? foundUser.displayName : displayName.trim();
+
+    createArchiveMutation.mutate({
+      displayName: effectiveDisplayName,
+      username: username.trim(),
+      partyAffiliation: (foundUser?.party ?? party.trim()) || undefined,
+      notes: (foundUser?.notes ?? notes.trim()) || undefined,
+      tweetUrl: tweetUrl.trim() || undefined,
+      tweetText: tweetText.trim(),
+      postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
+      screenshots: screenshotFiles.length > 0 ? screenshotFiles : undefined,
+    });
+  };
+
+  // Clear persisted draft after successful save
+  useEffect(() => {
+    if (createArchiveMutation.isSuccess) {
+      try {
+        localStorage.removeItem("archiveDraft");
+      } catch (err) {
+        // ignore
+      }
+    }
+  }, [createArchiveMutation.isSuccess]);
+
+  return (
+    <form onSubmit={handleSave} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="sourceUrl">Source URL</Label>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Input
+              id="sourceUrl"
+              type="url"
+              placeholder="Link to the tweet (required)"
+              value={tweetUrl}
+              onChange={(e) => {
+                setTweetUrl(e.target.value);
+                setMetadataFetched(false);
+              }}
+              className={`${errors.tweetUrl ? "border-red-500 border-2" : ""}`}
+            />
+            {errors.tweetUrl && (
+              <div className="flex items-center gap-1 mt-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{errors.tweetUrl}</span>
+              </div>
+            )}
+          </div>
+          <Button type="button" variant="outline" onClick={handleFetchUrl} disabled={isFetchingUrl || !tweetUrl.trim()}>
+            {isFetchingUrl ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Fetching...
+              </>
+            ) : (
+              "Fetch"
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Username is populated from the URL and shown only after metadata is fetched. */}
+      {metadataFetched && (
+        <div className="space-y-2">
+          <Label htmlFor="username">Username</Label>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Input
+                id="username"
+                placeholder="e.g. john_doe"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (metadataFetched) setMetadataFetched(false);
+                }}
+                disabled={metadataFetched}
+                className={`${errors.username ? "border-red-500 border-2" : ""}`}
+              />
+              {errors.username && (
+                <div className="flex items-center gap-1 mt-1 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{errors.username}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {metadataFetched && (
+        <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
+          {foundUser ? (
+            <p>
+              Found <strong>{foundUser.displayName}</strong> — {foundUser.archives.length} archive(s)
+            </p>
+          ) : (
+            <p>New user — fill in their info below.</p>
+          )}
+        </div>
+      )}
+
+      {metadataFetched && !foundUser && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="displayName">Display name</Label>
+            <Input
+              id="displayName"
+              placeholder="Full name to display"
+              value={displayName}
+              readOnly
+              className={errors.displayName ? "border-red-500 border-2" : ""}
+            />
+            {errors.displayName && (
+              <div className="flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{errors.displayName}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="party">Party affiliation (optional)</Label>
+            <Input
+              id="party"
+              placeholder="e.g. APC, PDP"
+              value={party}
+              onChange={(e) => setParty(e.target.value)}
+              className={errors.party ? "border-red-500 border-2" : ""}
+            />
+            {errors.party && (
+              <div className="flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{errors.party}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes (optional)</Label>
+            <Textarea
+              id="notes"
+              placeholder="Additional context or notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className={errors.notes ? "border-red-500 border-2" : ""}
+            />
+            {errors.notes && (
+              <div className="flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{errors.notes}</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {metadataFetched && (
+        <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-display text-lg font-semibold">Statement</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The statement text is populated from the tweet URL and cannot be edited after fetch.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="url">Source URL</Label>
+              <Input
+                id="url"
+                type="url"
+                placeholder="https://twitter.com/..."
+                value={tweetUrl}
+                readOnly={metadataFetched}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="text">Text *</Label>
+              <Textarea
+                id="text"
+                required
+                rows={4}
+                placeholder="Statement text"
+                value={tweetText}
+                readOnly={metadataFetched}
+                className="mt-1.5"
+              />
+              {errors.tweetText && (
+                <div className="mt-1.5 flex items-center gap-2 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.tweetText}
+                </div>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="posted">Posted on (optional)</Label>
+              <Input
+                id="posted"
+                type="datetime-local"
+                value={postedAt}
+                onChange={(e) => setPostedAt(e.target.value)}
+                readOnly={!!postedAt}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="screenshots">Screenshots (optional, max 8, 4 MB each)</Label>
+              <Input
+                id="screenshots"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleScreenshots(e.target.files)}
+                className="mt-1.5 cursor-pointer"
+                disabled={screenshotFiles.length >= MAX_SCREENSHOTS}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {screenshotFiles.length}/{MAX_SCREENSHOTS} screenshots selected
+              </p>
+              {screenshotPreviews.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <h3 className="text-sm font-medium text-foreground">Selected screenshots:</h3>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    {screenshotPreviews.map((preview, index) => (
+                      <div key={index} className="group relative overflow-hidden rounded-lg border border-border bg-muted">
+                        <img src={preview} alt={`Screenshot ${index + 1}`} className="aspect-square w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeScreenshot(index)}
+                          className="absolute inset-0 flex items-center justify-center bg-foreground/0 transition-colors group-hover:bg-foreground/20"
+                          title="Delete screenshot"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/90 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                            <AlertCircle className="h-4 w-4" />
+                          </div>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        {metadataFetched && (
+          <Button type="submit" size="lg" disabled={createArchiveMutation.isPending}>
+          {createArchiveMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            submitLabel
+          )}
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
