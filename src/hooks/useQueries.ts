@@ -33,9 +33,9 @@ export const queryKeys = {
     search: (query: string) => ["users", "search", query] as const,
     detail: (displayName: string) => ["users", "detail", displayName] as const,
   },
-   comments: {
+  comments: {
     byTweet: (tweetId: string) => ["comments", tweetId] as const,
-   },
+  },
   export: {
     all: ["export", "all"] as const,
   },
@@ -215,8 +215,13 @@ export function useCreateComment(options?: Record<string, unknown>) {
   const { onSuccess: userOnSuccess, ...restOptions } = mutationOptions;
 
   return useMutation({
-    mutationFn: ({ tweetId, payload }: { tweetId: string; payload: { author: string; text: string } }) =>
-      createComment(tweetId, payload),
+    mutationFn: ({
+      tweetId,
+      payload,
+    }: {
+      tweetId: string;
+      payload: { author: string; text: string };
+    }) => createComment(tweetId, payload),
     onSuccess: (...args) => {
       const [, variables] = args as [unknown, { tweetId: string }];
       queryClient.invalidateQueries({
@@ -245,7 +250,6 @@ export function useDeleteComment(options?: Record<string, unknown>) {
     ...options,
   });
 }
-
 
 // ---- Capture Screenshot Mutation ----
 export function useCaptureScreenshot(options?: Record<string, unknown>) {

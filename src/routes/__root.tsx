@@ -42,7 +42,7 @@ export const Route = createRootRoute({
       { name: "twitter:description", content: "Nigeria's public archive." },
     ],
     links: [
-      { rel: "icon", href: "/trailng.png" },
+      { rel: "icon", href: "/wepository.png" },
       { rel: "apple-touch-icon", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },

@@ -119,7 +119,10 @@ function UploadPage() {
       return;
     }
     const validation = validateSchema(displayNameSchema, displayName);
-    setErrors((prev) => ({ ...prev, displayName: validation.valid ? undefined : validation.error }));
+    setErrors((prev) => ({
+      ...prev,
+      displayName: validation.valid ? undefined : validation.error,
+    }));
   }, [displayName]);
 
   // Real-time validation for party
@@ -178,7 +181,11 @@ function UploadPage() {
     const newFiles: File[] = [];
     const newPreviews: string[] = [];
 
-    for (let i = 0; i < files.length && screenshotFiles.length + newFiles.length < MAX_SCREENSHOTS; i++) {
+    for (
+      let i = 0;
+      i < files.length && screenshotFiles.length + newFiles.length < MAX_SCREENSHOTS;
+      i++
+    ) {
       const file = files[i];
       if (file.size > MAX_FILE_SIZE) {
         toast.error(`File ${file.name} is larger than 4 MB`);
