@@ -6,8 +6,7 @@
 import { z, type ZodSchema } from "zod";
 
 // Allowed characters for archive search (username, display name, party, keywords)
-const SEARCH_ALLOWED_CHARS =
-  /^[a-zA-Z0-9\s\-_'.àáâãäåèéêëìíîïòóôõöùúûüñç&,()+]+$/;
+const SEARCH_ALLOWED_CHARS = /^[a-zA-Z0-9\s\-_'.àáâãäåèéêëìíîïòóôõöùúûüñç&,()+]+$/;
 
 export const usernameSchema = z
   .string()
@@ -48,9 +47,7 @@ export const searchQuerySchema = z
     "Search can only contain letters, numbers, spaces, and basic punctuation (- _ ' . & , ( )).",
   );
 
-export type ValidationResult =
-  | { valid: true }
-  | { valid: false; error: string };
+export type ValidationResult = { valid: true } | { valid: false; error: string };
 
 export function validateSchema(schema: ZodSchema, value: unknown): ValidationResult {
   try {
