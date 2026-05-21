@@ -40,31 +40,32 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
     }
     // Show a sonner toast action and also render an inline prompt inside the modal
     // as a fallback if the toast can't be reached (prevents the modal feeling "frozen").
-    toast("Save draft?", {
-      type: "action",
-      description: "Keep your current archive draft or discard it.",
-      action: {
-        label: "Keep draft",
-        onClick: () => {
-          onOpenChange(false);
-        },
-      },
-      cancel: {
-        label: "Discard",
-        onClick: () => {
-          try {
-            localStorage.removeItem("archiveDraft");
-          } catch (err) {
-            // ignore
-          }
-          setFormKey((current) => current + 1);
-          onOpenChange(false);
-        },
-      },
-      duration: 15000,
-      closeButton: true,
-      richColors: true,
-    });
+    // toast("Save draft?", {
+    //   type: "action",
+    //   description: "Keep your current archive draft or discard it.",
+    //   action: {
+    //     label: "Keep draft",
+    //     onClick: () => {
+    //       setShowDraftPrompt(false);
+    //       onOpenChange(false);
+    //     },
+    //   },
+    //   cancel: {
+    //     label: "Discard",
+    //     onClick: () => {
+    //       try {
+    //         localStorage.removeItem("archiveDraft");
+    //       } catch (err) {
+    //         // ignore
+    //       }
+    //       setFormKey((current) => current + 1);
+    //       onOpenChange(false);
+    //     },
+    //   },
+    //   duration: 15000,
+    //   closeButton: true,
+    //   richColors: true,
+    // });
 
     setShowDraftPrompt(true);
   };

@@ -29,6 +29,7 @@ export interface ArchiveDoc {
     loveCount: number;
     heartbreakCount: number;
   };
+  commentCount?: number;
 }
 
 export interface Comment {
@@ -64,6 +65,7 @@ export interface Archive {
     loveCount: number;
     heartbreakCount: number;
   };
+  commentCount?: number;
   displayName?: string;
   username?: string;
   partyAffiliation?: string;
@@ -101,6 +103,7 @@ function docToArchive(doc: ArchiveDoc): Archive {
       loveCount: doc.votes.loveCount || 0,
       heartbreakCount: doc.votes.heartbreakCount || 0,
     },
+    commentCount: doc.commentCount ?? 0,
     displayName: doc.displayName || undefined,
     username: doc.username || undefined,
     partyAffiliation: doc.partyAffiliation || undefined,
@@ -126,42 +129,6 @@ function docsToUserRecord(docs: ArchiveDoc[]): UserRecord | null {
     archives: docs.map(docToArchive),
   };
 }
-
-const DUMMY_RECENT_ARCHIVES: Archive[] = [
-  {
-    id: "recent-1",
-    url: "https://twitter.com/example/status/1234567890123456789",
-    text: "A new accountability record has been added for the public archive — every voice should be visible.",
-    postedAt: "2026-04-19T14:36:00.000Z",
-    createdAt: "2026-04-20T08:20:00.000Z",
-    votes: {
-      loveCount: 12,
-      heartbreakCount: 2,
-    },
-  },
-  {
-    id: "recent-2",
-    url: "https://twitter.com/example/status/9876543210987654321",
-    text: "Verified statement archived from a national figure with screenshot and source link.",
-    postedAt: "2026-04-18T11:10:00.000Z",
-    createdAt: "2026-04-19T21:05:00.000Z",
-    votes: {
-      loveCount: 8,
-      heartbreakCount: 1,
-    },
-  },
-  {
-    id: "recent-3",
-    url: "https://twitter.com/example/status/1122334455667788990",
-    text: "Community members are building the archive together — this timeline shows the latest additions.",
-    postedAt: "2026-04-17T08:45:00.000Z",
-    createdAt: "2026-04-18T18:55:00.000Z",
-    votes: {
-      loveCount: 15,
-      heartbreakCount: 0,
-    },
-  },
-];
 
 export async function getRecentArchives(): Promise<Archive[]> {
   try {
@@ -298,7 +265,7 @@ export async function createArchive(payload: {
   fd.append("lastName", payload.lastName ?? "");
   fd.append("partyAffiliation", payload.partyAffiliation ?? "");
   fd.append("notes", payload.notes ?? "");
-  fd.append("tweetUrl", payload.tweetUrl ?? "");
+  fd.append("screenshotUrl", payload.tweetUrl ?? "");
   fd.append("tweetText", payload.tweetText);
   fd.append("postedOn", payload.postedOn ?? "");
 

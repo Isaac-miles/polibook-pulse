@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Archive } from "@/lib/api";
-import { ExternalLink, ThumbsUp, ThumbsDown, ImageIcon, User } from "lucide-react";
+import { ExternalLink, ThumbsUp, ImageIcon, User, MessageCircle, Share2 } from "lucide-react";
 import { useVoteArchive } from "@/hooks/useQueries";
+import { toast } from "sonner";
 import { ScreenshotGrid } from "./ScreenshotGrid";
 
 function formatDate(iso?: string) {
@@ -19,23 +20,44 @@ function formatDate(iso?: string) {
 }
 
 export function ArchiveCard({ archive }: { archive: Archive }) {
-  const [voteState, setVoteState] = useState<"love" | "heartbreak" | null>(null);
+  const [voteState, setVoteState] = useState<"love" | null>(null);
 
   const voteMutation = useVoteArchive({
     onSuccess: (data: { loveCount: number; heartbreakCount: number }) => {
       // Update local counts after successful vote
       archive.votes.loveCount = data.loveCount;
-      archive.votes.heartbreakCount = data.heartbreakCount;
     },
   });
 
-  const handleVote = (type: "love" | "heartbreak") => {
+  const handleVote = (type: "love") => {
     if (voteState === type) {
       setVoteState(null);
     } else {
       setVoteState(type);
       voteMutation.mutate({ archiveId: archive.id, voteType: type });
     }
+  };
+
+  const handleCopy = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `https://wepository.com/archive/${archive.id}`;
+    const copy = async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard");
+      } catch (err) {
+        // fallback
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast.success("Link copied to clipboard");
+      }
+    };
+    copy();
   };
 
   const screenshots = archive.screenshots || (archive.screenshot ? [archive.screenshot] : []);
@@ -121,6 +143,24 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
             type="button"
             onClick={(e) => {
               e.preventDefault();
+              // navigate to archive detail
+              try {
+                window.location.href = `/archive/${archive.id}`;
+              } catch {
+                // fallback
+                window.location.assign(`/archive/${archive.id}`);
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm border-border bg-muted text-muted-foreground hover:bg-muted/80"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {archive.commentCount ?? 0}
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
               handleVote("love");
             }}
             disabled={voteMutation.isPending}
@@ -136,25 +176,17 @@ export function ArchiveCard({ archive }: { archive: Archive }) {
             />
             {archive.votes.loveCount}
           </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              handleVote("heartbreak");
-            }}
-            disabled={voteMutation.isPending}
-            aria-pressed={voteState === "heartbreak"}
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
-              voteState === "heartbreak"
-                ? "border-destructive bg-destructive/10 text-destructive"
-                : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            <ThumbsDown
-              className={`h-4 w-4 cursor-pointer ${voteState === "heartbreak" ? "fill-current" : ""}`}
-            />
-            {archive.votes.heartbreakCount}
-          </button>
+
+          <div className="ml-auto">
+            <button
+              type="button"
+              onClick={(e) => handleCopy(e)}
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm border-border bg-muted text-muted-foreground hover:bg-muted/80"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </button>
+          </div>
         </div>
       </article>
     </Link>
