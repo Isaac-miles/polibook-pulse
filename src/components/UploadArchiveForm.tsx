@@ -44,10 +44,29 @@ function parseTweetTextFromHtml(html: string) {
     const blockquote = doc.querySelector("blockquote");
     let text = blockquote?.textContent?.trim() || doc.body.textContent?.trim() || "";
     if (!text) return "";
+
+    // Remove the trailing @username and date pattern that oEmbed includes
+    // Pattern: "— @username Month Day, Year" or similar variations
+    text = text.replace(/—\s*@[\w]+\s+[A-Za-z]+\s+\d+,?\s+\d{4}.*$/i, "").trim();
+
     return text.replace(/\s+/g, " ").trim();
   } catch {
     return "";
   }
+}
+
+function isTweetTextTruncated(text: string): boolean {
+  const trimmed = text.trim();
+  // Check for obvious truncation markers:
+  // 1. Ends with ellipsis
+  if (/\.\.\.\s*$/.test(trimmed)) return true;
+  // 2. Ends with ellipsis character (…)
+  if (/…\s*$/.test(trimmed)) return true;
+  // 3. Ends with special char that often precedes truncation (like † from oEmbed)
+  if (/[†‡•◆★]\s*$/.test(trimmed)) return true;
+  // 4. Long text that doesn't end with proper sentence punctuation
+  if (trimmed.length > 100 && !/[.!?\"')\]]\s*$/.test(trimmed.replace(/\s+$/, ""))) return true;
+  return false;
 }
 
 function parseTweetDateFromHtml(html: string) {
@@ -88,6 +107,8 @@ export function UploadArchiveForm({
     tweetText?: string;
   }>({});
   const [metadataFetched, setMetadataFetched] = useState(false);
+  const [textTruncated, setTextTruncated] = useState(false);
+  const [allowManualEdit, setAllowManualEdit] = useState(false);
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
 
   const hasDraftData = useMemo(
@@ -143,7 +164,18 @@ export function UploadArchiveForm({
     } else {
       localStorage.removeItem(draftKey);
     }
-  }, [hasDraftData, tweetUrl, username, displayName, party, notes, tweetText, postedAt, metadataFetched, screenshotPreviews]);
+  }, [
+    hasDraftData,
+    tweetUrl,
+    username,
+    displayName,
+    party,
+    notes,
+    tweetText,
+    postedAt,
+    metadataFetched,
+    screenshotPreviews,
+  ]);
 
   // Load existing draft on mount (if any). This ensures re-opening the modal restores the draft.
   useEffect(() => {
@@ -209,7 +241,10 @@ export function UploadArchiveForm({
       return;
     }
     const validation = validateSchema(displayNameSchema, displayName);
-    setErrors((prev) => ({ ...prev, displayName: validation.valid ? undefined : validation.error }));
+    setErrors((prev) => ({
+      ...prev,
+      displayName: validation.valid ? undefined : validation.error,
+    }));
   }, [displayName]);
 
   useEffect(() => {
@@ -276,19 +311,32 @@ export function UploadArchiveForm({
         return;
       }
 
+      // Check if tweet text appears to be truncated
+      const isTruncated = isTweetTextTruncated(parsedText);
+      if (isTruncated) {
+        setTextTruncated(true);
+        toast.warning("Tweet text may be truncated. You can edit it before saving.");
+      } else {
+        setTextTruncated(false);
+      }
+
       // Always trust the URL-author mapping. Populate username/displayName from URL/oEmbed.
       setUsername(fetchedUsername);
       setDisplayName(fetchedDisplayName);
       setTweetText(parsedText);
       setPostedAt(parsedPostedAt);
       setMetadataFetched(true);
+      setAllowManualEdit(isTruncated);
       setErrors((prev) => ({ ...prev, tweetUrl: undefined, username: undefined }));
 
       if (!parsedPostedAt) {
         toast.info("No published date was available from the tweet metadata.");
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Invalid source URL: tweet not found or metadata unavailable.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Invalid source URL: tweet not found or metadata unavailable.";
       setErrors((prev) => ({ ...prev, tweetUrl: msg }));
       toast.error(msg);
     } finally {
@@ -403,7 +451,12 @@ export function UploadArchiveForm({
               </div>
             )}
           </div>
-          <Button type="button" variant="outline" onClick={handleFetchUrl} disabled={isFetchingUrl || !tweetUrl.trim()}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleFetchUrl}
+            disabled={isFetchingUrl || !tweetUrl.trim()}
+          >
             {isFetchingUrl ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -429,6 +482,8 @@ export function UploadArchiveForm({
                 onChange={(e) => {
                   setUsername(e.target.value);
                   if (metadataFetched) setMetadataFetched(false);
+                  setTextTruncated(false);
+                  setAllowManualEdit(false);
                 }}
                 disabled={metadataFetched}
                 className={`${errors.username ? "border-red-500 border-2" : ""}`}
@@ -448,7 +503,8 @@ export function UploadArchiveForm({
         <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
           {foundUser ? (
             <p>
-              Found <strong>{foundUser.displayName}</strong> — {foundUser.archives.length} archive(s)
+              Found <strong>{foundUser.displayName}</strong> — {foundUser.archives.length}{" "}
+              archive(s)
             </p>
           ) : (
             <p>New user — fill in their info below.</p>
@@ -518,7 +574,9 @@ export function UploadArchiveForm({
             <div>
               <h2 className="font-display text-lg font-semibold">Statement</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                The statement text is populated from the tweet URL and cannot be edited after fetch.
+                {allowManualEdit
+                  ? "The statement text appears incomplete. You can edit it below."
+                  : "The statement text is populated from the tweet URL."}
               </p>
             </div>
           </div>
@@ -536,14 +594,29 @@ export function UploadArchiveForm({
               />
             </div>
             <div>
-              <Label htmlFor="text">Text *</Label>
+              <Label htmlFor="text">
+                Text *{" "}
+                {allowManualEdit && (
+                  <span className="text-yellow-600 font-semibold">(Edit to complete)</span>
+                )}
+              </Label>
+              {textTruncated && (
+                <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                  <div className="font-semibold mb-1">⚠️ Text may be incomplete</div>
+                  <p>
+                    The extracted tweet text appears to contain ellipsis (...). Please review and
+                    paste the complete tweet text if needed.
+                  </p>
+                </div>
+              )}
               <Textarea
                 id="text"
                 required
                 rows={4}
                 placeholder="Statement text"
                 value={tweetText}
-                readOnly={metadataFetched}
+                onChange={(e) => setTweetText(e.target.value)}
+                readOnly={!allowManualEdit}
                 className="mt-1.5"
               />
               {errors.tweetText && (
@@ -583,8 +656,15 @@ export function UploadArchiveForm({
                   <h3 className="text-sm font-medium text-foreground">Selected screenshots:</h3>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                     {screenshotPreviews.map((preview, index) => (
-                      <div key={index} className="group relative overflow-hidden rounded-lg border border-border bg-muted">
-                        <img src={preview} alt={`Screenshot ${index + 1}`} className="aspect-square w-full object-cover" />
+                      <div
+                        key={index}
+                        className="group relative overflow-hidden rounded-lg border border-border bg-muted"
+                      >
+                        <img
+                          src={preview}
+                          alt={`Screenshot ${index + 1}`}
+                          className="aspect-square w-full object-cover"
+                        />
                         <button
                           type="button"
                           onClick={() => removeScreenshot(index)}
@@ -608,14 +688,14 @@ export function UploadArchiveForm({
       <div className="flex flex-wrap gap-3">
         {metadataFetched && (
           <Button type="submit" size="lg" disabled={createArchiveMutation.isPending}>
-          {createArchiveMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving…
-            </>
-          ) : (
-            submitLabel
-          )}
+            {createArchiveMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              submitLabel
+            )}
           </Button>
         )}
       </div>
