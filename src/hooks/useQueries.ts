@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   searchArchives,
   searchUsers,
@@ -110,7 +110,22 @@ export function useGetArchive(id: string, options?: Record<string, unknown>) {
 export function useRecentArchives(options?: Record<string, unknown>) {
   return useQuery({
     queryKey: ["recent-archives"] as const,
-    queryFn: getRecentArchives,
+    queryFn: () => getRecentArchives(1, 20),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    ...options,
+  });
+}
+
+// ---- Infinite recent archives (auto-load on scroll) ----
+export function useInfiniteRecentArchives(options?: Record<string, unknown>) {
+  return useInfiniteQuery({
+    queryKey: ["recent-archives-infinite"] as const,
+    queryFn: ({ pageParam = 1 }) => getRecentArchives(pageParam as number, 20),
+    getNextPageParam: (lastPage) => {
+      return lastPage.pagination.hasNext ? lastPage.pagination.page + 1 : undefined;
+    },
+    initialPageParam: 1,
     staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     ...options,

@@ -41,12 +41,20 @@ export interface Comment {
   updatedAt: string;
 }
 
-export interface PaginatedResponse {
-  data: ArchiveDoc[];
-  meta: {
-    total: number;
+export interface PaginatedResponse<T = ArchiveDoc> {
+  data: T[];
+  pagination: {
     page: number;
     limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
     pages: number;
   };
 }
@@ -130,16 +138,38 @@ function docsToUserRecord(docs: ArchiveDoc[]): UserRecord | null {
   };
 }
 
-export async function getRecentArchives(): Promise<Archive[]> {
+export async function getRecentArchives(
+  page: number = 1,
+  limit: number = 20,
+): Promise<PaginatedResponse<Archive>> {
   try {
-    const res = await apiClient.get("/api/archives/recent");
-    const docs: ArchiveDoc[] = res.data;
-    if (!docs || !Array.isArray(docs) || docs.length === 0) return [];
-    return docs.map((doc) => docToArchive(doc));
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      sort: "-createdAt",
+    });
+    const res = await apiClient.get(`/api/archives/recent?${params}`);
+    const payload = res.data as PaginatedResponse<ArchiveDoc>;
+    const archives = payload.data.map(docToArchive);
+
+    return {
+      data: archives,
+      pagination: payload.pagination,
+      meta: payload.meta,
+    };
   } catch (error) {
-    // If the API fails, return a safe empty array instead of dummy content.
-    console.warn("Failed to fetch recent archives, returning empty array:", error);
-    return [];
+    console.warn("Failed to fetch recent archives:", error);
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
   }
 }
 
