@@ -75,30 +75,31 @@ export function HeroSection({ inputValue, onInputChange, onSearch, isLoading }: 
         {/* Main content */}
         <div className="mt-4 max-w-3xl">
           <h1 className="text-4xl font-bold leading-tight text-white md:text-7xl">
-            Accountability{" "}
+            Digital{" "}
             <span className=" bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
-              archive
+              footprint
             </span>
           </h1>
 
           <p className="mt-4 max-w-2xl text-md leading-8 text-white/90 md:text-xl">
-            A community archive of public statements posted on X/Twitter by Nigerian public figures.
-            Search by username, party, or keyword to view documented statements with timestamps,
-            screenshots, and sources.
+            Hold public figures accountable with a permanent record of their public statements.
+            Search, verify, and trace the digital footprint of influential voices, archived and
+            accessible for the public good.
           </p>
         </div>
 
         {/* Search bar with validation */}
-        <form
-          onSubmit={handleSearchClick}
-          className="mt-10 space-y-2"
-        >
+        <form onSubmit={handleSearchClick} className="mt-10 space-y-2">
           <div className="flex flex-col gap-3 rounded-3xl bg-white/95 p-2 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:rounded-full">
             {/* Input */}
-            <div className={`flex w-full items-center gap-2 px-2 py-1 sm:flex-1 sm:px-2 sm:py-2 rounded-full transition-all ${
-              searchError ? "bg-red-50" : ""
-            }`}>
-              <Search className={`h-5 w-5 ${searchError ? "text-red-500" : "text-muted-foreground"}`} />
+            <div
+              className={`flex w-full items-center gap-2 px-2 py-1 sm:flex-1 sm:px-2 sm:py-2 rounded-full transition-all ${
+                searchError ? "bg-red-50" : ""
+              }`}
+            >
+              <Search
+                className={`h-5 w-5 ${searchError ? "text-red-500" : "text-muted-foreground"}`}
+              />
 
               <Input
                 value={inputValue}
