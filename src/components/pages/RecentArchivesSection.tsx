@@ -111,6 +111,18 @@ export function RecentArchivesSection({
             </>
           )}
         </div>
+        {hasNextPage && (
+          <div className="sticky bottom-0 left-0 z-10 mt-4 rounded-t-3xl border-t border-border bg-white/95 px-4 py-3 text-center text-sm text-muted-foreground shadow-[inset_0_1px_0_rgba(0,0,0,0.04)] backdrop-blur">
+            {isFetchingNextPage ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading more archives...
+              </div>
+            ) : (
+              <span>Scroll to load more archives</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
