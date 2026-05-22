@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, FormEvent } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AddArchiveModal } from "@/components/AddArchiveModal";
-import { useSearchUsers, useRecentArchives } from "@/hooks/useQueries";
+import { useSearchUsers, useInfiniteRecentArchives } from "@/hooks/useQueries";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { HeroSection } from "@/components/pages/HeroSection";
@@ -50,7 +50,16 @@ function Index() {
 
   const isSearchLoading = queryReady && (isLoading || isFetching);
 
-  const { data: recentArchives, refetch: refetchRecent } = useRecentArchives();
+  const {
+    data: recentPages,
+    isLoading: isLoadingRecent,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch: refetchRecent,
+  } = useInfiniteRecentArchives();
+
+  const recentArchives = recentPages?.pages.flatMap((page) => page.data) ?? [];
 
   const handleSearch = useCallback(
     (e: FormEvent) => {
@@ -92,7 +101,11 @@ function Index() {
         {/* Recent timeline on home page */}
         {!searched && (
           <RecentArchivesSection
-            recentArchives={recentArchives}
+            archives={recentArchives}
+            hasNextPage={Boolean(hasNextPage)}
+            isLoading={isLoadingRecent}
+            isFetchingNextPage={Boolean(isFetchingNextPage)}
+            onFetchNextPage={() => fetchNextPage()}
             onAddClick={() => setIsModalOpen(true)}
           />
         )}

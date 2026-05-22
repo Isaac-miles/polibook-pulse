@@ -1,14 +1,44 @@
+import { useRef, useEffect } from "react";
 import { Archive } from "@/lib/api";
 import { ArchiveCard } from "@/components/ArchiveCard";
 import { Button } from "@/components/ui/button";
-import { FileText, Star, Plus } from "lucide-react";
+import { FileText, Star, Plus, Loader2 } from "lucide-react";
 
 interface RecentArchivesSectionProps {
-  recentArchives?: Archive[];
+  archives: Archive[];
+  hasNextPage: boolean;
+  isLoading: boolean;
+  isFetchingNextPage: boolean;
+  onFetchNextPage: () => void;
   onAddClick: () => void;
 }
 
-export function RecentArchivesSection({ recentArchives, onAddClick }: RecentArchivesSectionProps) {
+export function RecentArchivesSection({
+  archives,
+  hasNextPage,
+  isLoading,
+  isFetchingNextPage,
+  onFetchNextPage,
+  onAddClick,
+}: RecentArchivesSectionProps) {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!sentinelRef.current || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          onFetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, onFetchNextPage]);
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/70 p-2 lg:p-8 shadow-2xl backdrop-blur-xl">
       {/* subtle gradient glow */}
@@ -40,7 +70,7 @@ export function RecentArchivesSection({ recentArchives, onAddClick }: RecentArch
           </div>
 
           {/* right CTA */}
-          {(!recentArchives || recentArchives.length === 0) && (
+          {(!archives || archives.length === 0) && !isLoading && (
             <Button
               onClick={onAddClick}
               className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted"
@@ -57,9 +87,29 @@ export function RecentArchivesSection({ recentArchives, onAddClick }: RecentArch
 
         {/* list */}
         <div className="space-y-4">
-          {recentArchives?.map((archive) => (
-            <ArchiveCard key={archive.id} archive={archive} />
-          ))}
+          {isLoading && archives.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {archives.map((archive) => (
+                <ArchiveCard key={archive.id} archive={archive} />
+              ))}
+              {/* Sentinel element for infinite scroll */}
+              <div ref={sentinelRef} className="py-4 text-center">
+                {isFetchingNextPage && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Loading more...</span>
+                  </div>
+                )}
+                {!hasNextPage && archives.length > 0 && (
+                  <p className="text-xs text-muted-foreground">No more archives</p>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
