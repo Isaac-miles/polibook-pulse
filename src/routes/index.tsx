@@ -36,6 +36,15 @@ function Index() {
   const [searched, setSearched] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    if (!value.trim()) {
+      setSearched(false);
+      setActiveQuery("");
+      refetchRecent?.();
+    }
+  };
+
   const queryReady = searched && isValidSearchQuery(activeQuery);
 
   const {
@@ -92,7 +101,7 @@ function Index() {
 
       <HeroSection
         inputValue={inputValue}
-        onInputChange={setInputValue}
+        onInputChange={handleInputChange}
         onSearch={handleSearch}
         isLoading={isSearchLoading}
       />
