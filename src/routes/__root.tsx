@@ -38,9 +38,9 @@ export const Route = createRootRoute({
       { title: "polibook" },
       { property: "og:title", content: "polibook" },
       { name: "twitter:title", content: "polibook" },
-      { name: "description", content: "Nigeria's public archive." },
-      { property: "og:description", content: "Nigeria's public archive." },
-      { name: "twitter:description", content: "Nigeria's public archive." },
+      { name: "description", content: "Global public archive." },
+      { property: "og:description", content: "Global public archive." },
+      { name: "twitter:description", content: "Global public archive." },
     ],
     links: [
       { rel: "icon", href: "/wepository.png" },
