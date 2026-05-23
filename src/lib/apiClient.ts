@@ -33,6 +33,15 @@ axiosRetry(apiClient, {
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Add any auth headers here if needed
+    if (config.data instanceof FormData && config.headers) {
+      const headers = config.headers as Record<string, unknown>;
+      delete headers["Content-Type"];
+      delete headers["content-type"];
+      if (headers.common && typeof headers.common === "object") {
+        delete (headers.common as Record<string, unknown>)["Content-Type"];
+        delete (headers.common as Record<string, unknown>)["content-type"];
+      }
+    }
     return config;
   },
   (error: AxiosError) => {
