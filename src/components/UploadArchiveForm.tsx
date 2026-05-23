@@ -37,6 +37,13 @@ function extractUsernameFromTweetUrl(urlString: string) {
   }
 }
 
+function formatLocalDateTime(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
+}
+
 function parseTweetTextFromHtml(html: string) {
   try {
     const parser = new DOMParser();
@@ -45,9 +52,11 @@ function parseTweetTextFromHtml(html: string) {
     let text = blockquote?.textContent?.trim() || doc.body.textContent?.trim() || "";
     if (!text) return "";
 
-    // Remove the trailing @username and date pattern that oEmbed includes
-    // Pattern: "— @username Month Day, Year" or similar variations
-    text = text.replace(/—\s*@[\w]+\s+[A-Za-z]+\s+\d+,?\s+\d{4}.*$/i, "").trim();
+    // Remove the trailing author signature and date that oEmbed includes.
+    // Example: "— Shola 👑 (@itsSh0la) June 9, 2023"
+    text = text
+      .replace(/\s*—\s*(?:[\s\S]*?)?\(?@[-\w]+\)?\s+[A-Za-z]+\s+\d{1,2},?\s+\d{4}.*$/i, "")
+      .trim();
 
     return text.replace(/\s+/g, " ").trim();
   } catch {
@@ -73,12 +82,19 @@ function parseTweetDateFromHtml(html: string) {
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
-    const anchor = doc.querySelector("a");
-    const rawDate = anchor?.textContent?.trim();
+    const anchors = Array.from(doc.querySelectorAll("a"));
+    const dateAnchor =
+      anchors
+        .reverse()
+        .find(
+          (anchor) =>
+            anchor.href.includes("/status/") || /\b\d{4}\b/.test(anchor.textContent ?? ""),
+        ) || anchors[anchors.length - 1];
+    const rawDate = dateAnchor?.textContent?.trim();
     if (!rawDate) return "";
     const date = new Date(rawDate);
     if (isNaN(date.getTime())) return "";
-    return date.toISOString().slice(0, 16);
+    return formatLocalDateTime(date);
   } catch {
     return "";
   }
@@ -411,7 +427,7 @@ export function UploadArchiveForm({
       notes: (foundUser?.notes ?? notes.trim()) || undefined,
       tweetUrl: tweetUrl.trim() || undefined,
       tweetText: tweetText.trim(),
-      postedOn: postedAt ? new Date(postedAt).toISOString() : undefined,
+      postedOn: postedAt || undefined,
       screenshots: screenshotFiles.length > 0 ? screenshotFiles : undefined,
     });
   };
