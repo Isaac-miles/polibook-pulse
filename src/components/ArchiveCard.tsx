@@ -10,12 +10,11 @@ function formatDate(iso?: string) {
   if (!iso) return "Unknown date";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
+
+  return d.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    day: "2-digit",
   });
 }
 

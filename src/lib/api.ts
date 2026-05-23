@@ -310,9 +310,7 @@ export async function createArchive(payload: {
     fd.append("screenshotPublicId", payload.screenshotPublicId);
   }
 
-  const res = await apiClient.post("/api/archives", fd, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const res = await apiClient.post("/api/archives", fd);
   return res.data;
 }
 
@@ -353,9 +351,7 @@ export async function updateArchive(
     fd.append("screenshot", payload.screenshot);
   }
 
-  const res = await apiClient.put(`/api/archives/${id}`, fd, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const res = await apiClient.put(`/api/archives/${id}`, fd);
   return res.data;
 }
 
