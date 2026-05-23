@@ -23,7 +23,10 @@ export const displayNameSchema = z
   .max(100, "Display name must be at most 100 characters long.")
   // Allow letters, numbers, punctuation, marks, symbols (emoji), spaces,
   // and common emoji sequence characters (ZWJ U+200D and VS16 U+FE0F).
-  .regex(/^[\p{L}\p{N}\p{P}\p{M}\p{S}\s\u200D\uFE0F]+$/u, "Display name contains invalid characters.");
+  .regex(
+    /^[\p{L}\p{N}\p{P}\p{M}\p{S}\s\u200D\uFE0F]+$/u,
+    "Display name contains invalid characters.",
+  );
 
 export const urlSchema = z.string().url("Invalid URL format.");
 
