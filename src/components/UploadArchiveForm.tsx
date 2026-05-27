@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchTweetMetadata, type ArchiveDoc } from "@/lib/api";
+import { fetchTweetMetadata, fetchTweetScreenshot, type ArchiveDoc } from "@/lib/api";
 import { useGetUser, useCreateArchive } from "@/hooks/useQueries";
 import {
   usernameSchema,
@@ -114,6 +114,8 @@ export function UploadArchiveForm({
   const [postedAt, setPostedAt] = useState("");
   const [screenshotFiles, setScreenshotFiles] = useState<File[]>([]);
   const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
+  const [automaticScreenshotSrc, setAutomaticScreenshotSrc] = useState<string | null>(null);
+  const [isFetchingScreenshot, setIsFetchingScreenshot] = useState(false);
   const [errors, setErrors] = useState<{
     username?: string;
     displayName?: string;
@@ -138,7 +140,8 @@ export function UploadArchiveForm({
       tweetText.trim() !== "" ||
       postedAt.trim() !== "" ||
       screenshotFiles.length > 0 ||
-      screenshotPreviews.length > 0,
+      screenshotPreviews.length > 0 ||
+      automaticScreenshotSrc !== null,
     [
       metadataFetched,
       username,
@@ -150,6 +153,7 @@ export function UploadArchiveForm({
       postedAt,
       screenshotFiles.length,
       screenshotPreviews.length,
+      automaticScreenshotSrc,
     ],
   );
 
@@ -348,6 +352,25 @@ export function UploadArchiveForm({
       if (!parsedPostedAt) {
         toast.info("No published date was available from the tweet metadata.");
       }
+
+      try {
+        setIsFetchingScreenshot(true);
+        const screenshotBase64 = await fetchTweetScreenshot(tweetUrl.trim());
+        if (screenshotBase64) {
+          setAutomaticScreenshotSrc(
+            screenshotBase64.startsWith("data:")
+              ? screenshotBase64
+              : `data:image/png;base64,${screenshotBase64}`,
+          );
+        } else {
+          setAutomaticScreenshotSrc(null);
+        }
+      } catch (error) {
+        console.warn("Automatic screenshot failed", error);
+        setAutomaticScreenshotSrc(null);
+      } finally {
+        setIsFetchingScreenshot(false);
+      }
     } catch (err) {
       const msg =
         err instanceof Error
@@ -457,6 +480,7 @@ export function UploadArchiveForm({
               onChange={(e) => {
                 setTweetUrl(e.target.value);
                 setMetadataFetched(false);
+                setAutomaticScreenshotSrc(null);
               }}
               className={`${errors.tweetUrl ? "border-red-500 border-2" : ""}`}
             />
@@ -642,6 +666,21 @@ export function UploadArchiveForm({
                 </div>
               )}
             </div>
+            {isFetchingScreenshot && (
+              <div className="rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+                Fetching automatic screenshot...
+              </div>
+            )}
+            {automaticScreenshotSrc && (
+              <div className="rounded-xl border border-border bg-muted p-3">
+                <div className="mb-2 text-sm font-medium text-foreground">Screenshot</div>
+                <img
+                  src={automaticScreenshotSrc}
+                  alt="Automatic tweet screenshot"
+                  className="w-full  rounded-lg border border-border object-contain"
+                />
+              </div>
+            )}
             <div>
               <Label htmlFor="posted">Posted on (optional)</Label>
               <Input
