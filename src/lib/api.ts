@@ -274,9 +274,11 @@ export async function fetchTweetMetadata(
 }
 
 export async function fetchTweetScreenshot(sourceUrl: string): Promise<string | null> {
-  const res = await apiClient.post("https://trial-v50w.onrender.com/api/archives/screenshot", {
-    sourceUrl,
-  });
+  const res = await apiClient.post(
+    "https://trial-v50w.onrender.com/api/archives/screenshot",
+    { sourceUrl },
+    { timeout: 120000 }, // 120 seconds for external screenshot service
+  );
 
   const json = res.data;
   if (!json) return null;

@@ -100,6 +100,19 @@ function parseTweetDateFromHtml(html: string) {
   }
 }
 
+function base64ToFile(base64: string, filename: string = "tweet-screenshot.png"): File {
+  // Extract the base64 data (remove the data:image/png;base64, prefix if present)
+  const base64Data = base64.includes(",") ? base64.split(",")[1] : base64;
+  const byteCharacters = atob(base64Data);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: "image/png" });
+  return new File([blob], filename, { type: "image/png" });
+}
+
 export function UploadArchiveForm({
   submitLabel = "Save to archive",
   onSuccess,
@@ -443,6 +456,26 @@ export function UploadArchiveForm({
 
     const effectiveDisplayName = foundUser ? foundUser.displayName : displayName.trim();
 
+    // Build the final screenshots array
+    const finalScreenshots: File[] = [];
+
+    // Add the automatic screenshot first if available
+    if (automaticScreenshotSrc) {
+      try {
+        const automaticFile = base64ToFile(
+          automaticScreenshotSrc,
+          "automatic-tweet-screenshot.png",
+        );
+        finalScreenshots.push(automaticFile);
+      } catch (err) {
+        console.warn("Failed to convert automatic screenshot", err);
+        // Continue without automatic screenshot if conversion fails
+      }
+    }
+
+    // Add manual screenshots
+    finalScreenshots.push(...screenshotFiles);
+
     createArchiveMutation.mutate({
       displayName: effectiveDisplayName,
       username: username.trim(),
@@ -451,7 +484,7 @@ export function UploadArchiveForm({
       tweetUrl: tweetUrl.trim() || undefined,
       tweetText: tweetText.trim(),
       postedOn: postedAt || undefined,
-      screenshots: screenshotFiles.length > 0 ? screenshotFiles : undefined,
+      screenshots: finalScreenshots.length > 0 ? finalScreenshots : undefined,
     });
   };
 
@@ -466,8 +499,19 @@ export function UploadArchiveForm({
     }
   }, [createArchiveMutation.isSuccess]);
 
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    // Prevent form submission on Enter key unless it's from the submit button
+    if (e.key === "Enter" && e.target !== e.currentTarget) {
+      const target = e.target as HTMLElement;
+      // Allow Enter only in textarea and select elements
+      if (target.tagName !== "TEXTAREA" && target.tagName !== "SELECT") {
+        e.preventDefault();
+      }
+    }
+  };
+
   return (
-    <form onSubmit={handleSave} className="space-y-6">
+    <form onSubmit={handleSave} onKeyDown={handleFormKeyDown} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="sourceUrl">Source URL</Label>
         <div className="flex gap-2">
