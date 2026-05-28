@@ -96,7 +96,7 @@ function Index() {
   );
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-soft)]">
+    <div className="min-h-screen bg-[image:var(--gradient-soft)] dark:bg-none dark:bg-background">
       <SiteHeader />
 
       <HeroSection

@@ -40,9 +40,9 @@ export function RecentArchivesSection({
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, onFetchNextPage]);
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/70 dark:bg-slate-950/90 p-2 lg:p-8 shadow-2xl backdrop-blur-xl">
-      {/* subtle gradient glow */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-green-100/40 via-transparent to-emerald-200/30" />
+    <div className="relative overflow-hidden rounded-3xl border border-border bg-white/70 dark:bg-background p-2 lg:p-8 shadow-2xl backdrop-blur-xl">
+      {/* subtle gradient glow — hidden in dark mode */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-green-100/40 via-transparent to-emerald-200/30 dark:hidden" />
 
       {/* content */}
       <div className="relative">
@@ -112,7 +112,7 @@ export function RecentArchivesSection({
           )}
         </div>
         {hasNextPage && (
-          <div className="sticky bottom-0 left-0 z-10 mt-4 rounded-t-3xl border-t border-border bg-white/95 dark:bg-slate-950/90 px-4 py-3 text-center text-sm text-muted-foreground shadow-[inset_0_1px_0_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur">
+          <div className="sticky bottom-0 left-0 z-10 mt-4 rounded-t-3xl border-t border-border bg-white/95 dark:bg-background px-4 py-3 text-center text-sm text-muted-foreground shadow-[inset_0_1px_0_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur">
             {isFetchingNextPage ? (
               <div className="flex items-center justify-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
