@@ -1,8 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "./ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Moon, Sun } from "lucide-react";
+import { useThemeStore } from "@/lib/themeStore";
 
 export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -48,6 +52,14 @@ export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
           >
             About
           </Link>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={toggleTheme}
+            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
         </nav>
       </div>
     </header>
