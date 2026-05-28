@@ -242,9 +242,17 @@ export function useCreateComment(options?: Record<string, unknown>) {
     }) => createComment(tweetId, payload),
     onSuccess: (...args) => {
       const [, variables] = args as [unknown, { tweetId: string }];
+      // Refresh the comments list for this archive
       queryClient.invalidateQueries({
         queryKey: queryKeys.comments.byTweet(variables.tweetId),
       });
+      // Invalidate the archive detail so commentCount updates on the detail page
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.archives.detail(variables.tweetId),
+      });
+      // Invalidate the timeline so commentCount on cards updates immediately
+      queryClient.invalidateQueries({ queryKey: ["recent-archives-infinite"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-archives"] });
 
       if (typeof userOnSuccess === "function") {
         userOnSuccess(...args);
