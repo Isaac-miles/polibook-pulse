@@ -526,6 +526,7 @@ export function UploadArchiveForm({
                 setMetadataFetched(false);
                 setAutomaticScreenshotSrc(null);
               }}
+              autoFocus
               className={`${errors.tweetUrl ? "border-red-500 border-2" : ""}`}
             />
             {errors.tweetUrl && (

@@ -8,7 +8,7 @@ export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border bg-background backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         {!backBtn && (
           <Link to="/" className="flex items-center gap-2.5">
