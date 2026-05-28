@@ -28,40 +28,45 @@ function About() {
         <h1 className="font-display text-4xl font-bold">About Wepository</h1>
         <div className="prose mt-8 space-y-5 text-foreground/90">
           <p className="text-lg leading-relaxed">
-            Wepository is a public archive that lets anyone look up a politician's username on
-            X/Twitter and see what they've said about elections, parties, and policy — with
-            timestamps and sources.
+            Wepository is a community-built public archive that holds public figures accountable for
+            what they post online — politicians, activists, journalists, executives, and anyone else
+            with a public platform, anywhere in the world.
           </p>
           <h2 className="font-display text-2xl font-semibold pt-4">How it works</h2>
           <ol className="list-decimal space-y-2 pl-5 text-base leading-relaxed">
             <li>
               Visit the{" "}
               <Link to="/" className="text-primary underline">
-                Search
+                home page
               </Link>{" "}
-              page and enter a username.
+              and search by username, name, or keyword to find archived statements.
             </li>
             <li>
-              If they exist in the archive, you'll see their info and every archived statement
-              that's been logged.
-            </li>
-            <li>
-              If they don't exist, head to{" "}
+              If a public figure isn't in the archive yet, head to{" "}
               <Link to="/upload" className="text-primary underline">
                 Upload
               </Link>{" "}
-              to add them.
+              or use the <strong>+ Add archive</strong> button.
             </li>
             <li>
-              Contributors paste the statement text and a link to the original — the timestamp gets
-              saved automatically.
+              Paste the link to their post. Wepository automatically fetches the statement text,
+              author details, post date, and a screenshot — no manual entry needed.
+            </li>
+            <li>
+              Once saved, the archive is immediately visible on the community timeline and
+              searchable by anyone.
             </li>
           </ol>
-          <h2 className="font-display text-2xl font-semibold pt-4">Storage note</h2>
+          <h2 className="font-display text-2xl font-semibold pt-4">What gets archived</h2>
           <p className="text-base leading-relaxed">
-            For now, Wepository runs without a database. Public records ship as a static JSON file
-            in the app. Contributions made via the Upload page save locally and can be exported as
-            JSON to be added to the public file.
+            Any public post from X/Twitter by a public figure. The archive stores the statement
+            text, source URL, post date, author details, and an automatic screenshot — creating a
+            permanent, verifiable record even if the original post is later deleted or edited.
+          </p>
+          <h2 className="font-display text-2xl font-semibold pt-4">Who can contribute</h2>
+          <p className="text-base leading-relaxed">
+            Anyone. Wepository is a community project. If you see a statement worth preserving,
+            submit it. The more people contribute, the more complete the public record becomes.
           </p>
         </div>
       </main>

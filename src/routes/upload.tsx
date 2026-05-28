@@ -28,12 +28,12 @@ function UploadPage() {
     <div className="min-h-screen bg-background">
       <Toaster richColors position="top-center" />
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-12">
+      <main className="mx-auto max-w-3xl px-1 py-12">
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold">Add to archive</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter a username and fetch the tweet URL first. The statement metadata is auto-populated
-            from the source and cannot be edited.
+            Paste the link to a post and hit Fetch. The statement text, author details, post date,
+            and screenshot are all pulled automatically.
           </p>
         </div>
 

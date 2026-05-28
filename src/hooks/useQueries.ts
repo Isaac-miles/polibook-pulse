@@ -168,6 +168,7 @@ export function useCreateArchive(options?: Record<string, unknown>) {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       // Refresh recent timeline so new archives appear immediately
       queryClient.invalidateQueries({ queryKey: ["recent-archives"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-archives-infinite"] });
       // Also remove stale cache entries entirely for searches
       queryClient.removeQueries({ queryKey: queryKeys.users.search("") });
 

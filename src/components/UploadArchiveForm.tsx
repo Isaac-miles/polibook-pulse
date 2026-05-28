@@ -654,7 +654,7 @@ export function UploadArchiveForm({
       )}
 
       {metadataFetched && (
-        <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
+        <div className="rounded-xl border border-border bg-card p-2 shadow-[var(--shadow-soft)]">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-lg font-semibold">Statement</h2>
@@ -713,7 +713,7 @@ export function UploadArchiveForm({
             </div>
             {isFetchingScreenshot && (
               <div className="rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
-                Fetching automatic screenshot...
+                Fetching automatic screenshot please wait...
               </div>
             )}
             {automaticScreenshotSrc && (
