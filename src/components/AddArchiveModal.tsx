@@ -95,16 +95,16 @@ export function AddArchiveModal({ open, onOpenChange, onArchiveAdded }: AddArchi
               </div>
               <div className="flex gap-2">
                 <button
-                  className="btn inline-flex items-center rounded-md bg-primary px-3 py-1 text-white"
+                  className="btn inline-flex items-center rounded-md bg-primary px-1 py-1 text-white"
                   onClick={() => {
                     setShowDraftPrompt(false);
                     onOpenChange(false);
                   }}
                 >
-                  Keep draft
+                   draft
                 </button>
                 <button
-                  className="btn inline-flex items-center rounded-md border border-border bg-white px-3 py-1"
+                  className="btn inline-flex items-center rounded-md border border-border bg-white px-1 py-1"
                   onClick={() => {
                     try {
                       localStorage.removeItem("archiveDraft");
