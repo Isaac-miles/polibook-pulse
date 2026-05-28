@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useComments, useCreateComment, useGetArchive, useVoteArchive } from "@/hooks/useQueries";
 import { type ScreenshotInfo } from "@/lib/api";
-import { ExternalLink, ThumbsUp, ThumbsDown, Loader2, MessageCircle, User } from "lucide-react";
+import { ExternalLink, ThumbsUp, Loader2, MessageCircle, User } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -114,7 +114,7 @@ function ArchiveDetailsPage() {
     <div className="min-h-screen bg-background">
       <Toaster richColors position="top-center" />
       <SiteHeader backBtn={true} />
-      <main className="mx-auto max-w-2xl px-4 py-4">
+      <main className="mx-auto max-w-2xl px-4 py-4 overflow-x-hidden">
         <article className="border-b border-border pb-4">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-full bg-muted shrink-0  flex items-center justify-center">
@@ -155,36 +155,34 @@ function ArchiveDetailsPage() {
           )}
 
           {/* ACTION BAR */}
-          <div className="flex items-center justify-between max-w-md mt-3 text-muted-foreground">
+          <div className="mt-4 flex flex-wrap items-center gap-3 pt-3 text-sm text-muted-foreground">
+            {/* Comment count — first */}
+            <button
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm border-border bg-muted text-muted-foreground hover:bg-muted/80"
+              onClick={() => document.getElementById("comment-input")?.focus()}
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span>{comments?.length ?? archive.commentCount ?? 0}</span>
+            </button>
+
+            {/* Like */}
             <button
               onClick={() => voteMutation.mutate({ archiveId, voteType: "love" })}
-              className="flex items-center gap-1 hover:text-red-500 transition"
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm border-border bg-muted text-muted-foreground hover:bg-muted/80 transition"
             >
               <ThumbsUp className="h-4 w-4" />
-              <span className="text-sm">{archive.votes?.loveCount ?? 0}</span>
+              <span>{archive.votes?.loveCount ?? 0}</span>
             </button>
 
-            <button
-              onClick={() => voteMutation.mutate({ archiveId, voteType: "heartbreak" })}
-              className="flex items-center gap-1 hover:text-orange-500 transition"
-            >
-              <ThumbsDown className="h-4 w-4" />
-              <span className="text-sm">{archive.votes?.heartbreakCount ?? 0}</span>
-            </button>
-
-            {archive.postedOn && (
-              <span className="text-xs">Posted: {formatDate(archive.postedOn)}</span>
-            )}
-
-            {archive.createdAt && (
-              <span className="text-xs text-muted-foreground">
-                Archived: {formatDate(archive.createdAt)}
-              </span>
-            )}
-
-            {archive.screenshotUrl && (
-              <p>
-                {/* <span className="font-medium text-foreground/70">Source:</span>{" "} */}
+            {/* Dates + source pushed to the right */}
+            <div className="ml-auto flex items-center gap-3 text-xs">
+              {archive.postedOn && (
+                <span>Posted: {formatDate(archive.postedOn)}</span>
+              )}
+              {archive.createdAt && (
+                <span>Archived: {formatDate(archive.createdAt)}</span>
+              )}
+              {archive.screenshotUrl && (
                 <a
                   href={archive.screenshotUrl}
                   target="_blank"
@@ -193,8 +191,8 @@ function ArchiveDetailsPage() {
                 >
                   <ExternalLink className="h-3 w-3" />
                 </a>
-              </p>
-            )}
+              )}
+            </div>
           </div>
         </article>
 
@@ -203,11 +201,12 @@ function ArchiveDetailsPage() {
           {/* <MessageCircle className="mr-2 h-5 w-5" /> */}
           <div className="flex-1">
             <input
+              id="comment-input"
               type="text"
-              placeholder="Your name"
+              placeholder="Enter your name"
               value={commentAuthor}
               onChange={(e) => setCommentAuthor(e.target.value)}
-              className="w-full text-sm bg-transparent outline-none p-1 mb-1"
+              className="w-full rounded-md border border-input bg-input px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring mb-2"
             />
 
             <Textarea
