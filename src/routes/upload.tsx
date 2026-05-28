@@ -37,7 +37,7 @@ function UploadPage() {
           </p>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 rounded-3xl border border-border bg-card/80 p-8 shadow-[var(--shadow-soft)] dark:bg-slate-950/90">
           <UploadArchiveForm
             submitLabel="Save to archive"
             onSuccess={() => router.navigate({ to: "/" })}

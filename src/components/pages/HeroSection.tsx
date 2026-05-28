@@ -50,7 +50,7 @@ export function HeroSection({ inputValue, onInputChange, onSearch, isLoading }: 
       ></div>
 
       {/* Dark green gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#004d26]/95 via-[#006633]/85 to-[#0f9d58]/45" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#004d26]/95 via-[#006633]/85 to-[#0f9d58]/45 dark:from-slate-950/95 dark:via-slate-900/85 dark:to-slate-950/65" />
 
       {/* Dot texture */}
       <div
@@ -90,11 +90,11 @@ export function HeroSection({ inputValue, onInputChange, onSearch, isLoading }: 
 
         {/* Search bar with validation */}
         <form onSubmit={handleSearchClick} className="mt-10 space-y-2">
-          <div className="flex flex-col gap-3 rounded-3xl bg-white/95 p-2 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:rounded-full">
+          <div className="flex flex-col gap-3 rounded-3xl bg-white/95 dark:bg-slate-800/90 p-2 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:rounded-full">
             {/* Input */}
             <div
               className={`flex w-full items-center gap-2 px-2 py-1 sm:flex-1 sm:px-2 sm:py-2 rounded-full transition-all ${
-                searchError ? "bg-red-50" : ""
+                searchError ? "bg-red-50 dark:bg-red-500/15" : "bg-transparent dark:bg-transparent"
               }`}
             >
               <Search

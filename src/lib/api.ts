@@ -273,6 +273,21 @@ export async function fetchTweetMetadata(
   return data;
 }
 
+export async function fetchTweetScreenshot(sourceUrl: string): Promise<string | null> {
+  const res = await apiClient.post(
+    "https://trial-v50w.onrender.com/api/archives/screenshot",
+    { sourceUrl },
+    { timeout: 120000 }, // 120 seconds for external screenshot service
+  );
+
+  const json = res.data;
+  if (!json) return null;
+  if (typeof json === "string") return json;
+  if (typeof json.screenshot === "string") return json.screenshot;
+  if (typeof json.base64 === "string") return json.base64;
+  return null;
+}
+
 export async function createArchive(payload: {
   displayName: string;
   username?: string;
