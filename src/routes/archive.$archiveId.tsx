@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ScreenshotGrid } from "@/components/ScreenshotGrid";
@@ -53,6 +53,7 @@ function formatDate(iso?: string | null) {
 
 function ArchiveDetailsPage() {
   const { archiveId } = Route.useParams();
+  const navigate = useNavigate();
   const [commentAuthor, setCommentAuthor] = useState("");
   const [commentText, setCommentText] = useState("");
 
@@ -91,7 +92,16 @@ function ArchiveDetailsPage() {
     return (
       <div className="min-h-screen bg-background">
         <Toaster richColors position="top-center" />
-        <SiteHeader backBtn={true} />
+        <SiteHeader
+          backBtn={true}
+          onBack={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              navigate({ to: "/" });
+            }
+          }}
+        />
         <main className="mx-auto max-w-4xl px-4 py-12">
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-center">
             <p className="text-destructive">Archive not found or error loading details.</p>
@@ -111,10 +121,19 @@ function ArchiveDetailsPage() {
   const fullName = [archive.firstName, archive.lastName].filter(Boolean).join(" ");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Toaster richColors position="top-center" />
-      <SiteHeader backBtn={true} />
-      <main className="mx-auto max-w-2xl px-4 py-4 overflow-x-hidden">
+      <SiteHeader
+        backBtn={true}
+        onBack={() => {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            navigate({ to: "/" });
+          }
+        }}
+      />
+      <main className="mx-auto max-w-2xl px-4 py-4 overflow-x-hidden w-full">
         <article className="border-b border-border pb-4">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-full bg-muted shrink-0  flex items-center justify-center">

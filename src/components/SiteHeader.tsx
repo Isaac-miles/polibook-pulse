@@ -3,9 +3,17 @@ import { Button } from "./ui/button";
 import { ChevronLeft, Moon, Sun } from "lucide-react";
 import { useThemeStore } from "@/lib/themeStore";
 
-export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
+export function SiteHeader({ backBtn, onBack }: { backBtn?: boolean; onBack?: () => void }) {
   const theme = useThemeStore((state) => state.theme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
+      window.history.back();
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background backdrop-blur-md">
@@ -22,7 +30,7 @@ export function SiteHeader({ backBtn }: { backBtn?: boolean }) {
         {backBtn && (
           <Button
             variant="ghost"
-            onClick={() => window.history.back()}
+            onClick={handleBack}
             className="inline-flex items-center gap-2"
           >
             <ChevronLeft className="h-4 w-4" /> Back

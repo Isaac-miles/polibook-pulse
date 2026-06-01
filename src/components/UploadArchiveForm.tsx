@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchTweetMetadata, fetchTweetScreenshot, type ArchiveDoc } from "@/lib/api";
+import { fetchTweetMetadata, fetchTweetScreenshot } from "@/lib/api";
 import { useGetUser, useCreateArchive } from "@/hooks/useQueries";
 import {
   usernameSchema,
@@ -15,7 +15,7 @@ import {
   validateSchema,
 } from "@/lib/validators";
 import { toast } from "sonner";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, PenLine } from "lucide-react";
 
 interface UploadArchiveFormProps {
   submitLabel?: string;
@@ -141,6 +141,10 @@ export function UploadArchiveForm({
   const [textTruncated, setTextTruncated] = useState(false);
   const [allowManualEdit, setAllowManualEdit] = useState(false);
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  // Set to true when fetch fails — unlocks all fields for manual entry
+  const [manualMode, setManualMode] = useState(false);
+  // Set to true after a failed fetch to show the inline "Fill in manually" prompt
+  const [fetchFailed, setFetchFailed] = useState(false);
 
   const hasDraftData = useMemo(
     () =>
@@ -244,8 +248,8 @@ export function UploadArchiveForm({
 
   const usernameValid = validateSchema(usernameSchema, username.trim()).valid;
 
-  const { data: foundUser, isLoading: loadingUser } = useGetUser(username.trim(), {
-    enabled: metadataFetched && username.trim().length > 0 && usernameValid,
+  const { data: foundUser } = useGetUser(username.trim(), {
+    enabled: (metadataFetched || manualMode) && username.trim().length > 0 && usernameValid,
   });
 
   const createArchiveMutation = useCreateArchive({
@@ -390,7 +394,10 @@ export function UploadArchiveForm({
           ? err.message
           : "Invalid source URL: tweet not found or metadata unavailable.";
       setErrors((prev) => ({ ...prev, tweetUrl: msg }));
+      // Don't use a toast action here — toast clicks outside the modal
+      // trigger the draft-prompt interceptor. Show the fallback inline instead.
       toast.error(msg);
+      setFetchFailed(true);
     } finally {
       setIsFetchingUrl(false);
     }
@@ -433,16 +440,20 @@ export function UploadArchiveForm({
   };
 
   const isFormValid = () => {
-    if (!metadataFetched) return false;
+    if (!metadataFetched && !manualMode) return false;
     if (!username.trim()) return false;
     if (errors.username) return false;
     if (!tweetText.trim()) return false;
     if (errors.tweetText) return false;
-    if (!foundUser && !displayName.trim()) return false;
-    if (!foundUser && errors.displayName) return false;
+    // In manual mode display name is always editable and required
+    if (!displayName.trim()) return false;
+    if (errors.displayName) return false;
+    // In auto mode, if user already exists we don't need display name from form
+    if (!manualMode && !foundUser && !displayName.trim()) return false;
     if (errors.party) return false;
     if (errors.notes) return false;
-    if (errors.tweetUrl) return false;
+    // URL is required only when not in manual mode
+    if (!manualMode && errors.tweetUrl) return false;
     return true;
   };
 
@@ -519,20 +530,40 @@ export function UploadArchiveForm({
             <Input
               id="sourceUrl"
               type="url"
-              placeholder="Link to the tweet (required)"
+              placeholder={manualMode ? "Link to the post (optional — post may be deleted)" : "Link to the tweet (required)"}
               value={tweetUrl}
               onChange={(e) => {
                 setTweetUrl(e.target.value);
                 setMetadataFetched(false);
+                setManualMode(false);
+                setFetchFailed(false);
                 setAutomaticScreenshotSrc(null);
               }}
               autoFocus
               className={`${errors.tweetUrl ? "border-red-500 border-2" : ""}`}
             />
-            {errors.tweetUrl && (
-              <div className="flex items-center gap-1 mt-1 text-sm text-red-600">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{errors.tweetUrl}</span>
+            {errors.tweetUrl && !manualMode && (
+              <div className="mt-1 space-y-2">
+                <div className="flex items-center gap-1 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{errors.tweetUrl}</span>
+                </div>
+                {fetchFailed && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualMode(true);
+                      setMetadataFetched(true);
+                      setAllowManualEdit(true);
+                      setFetchFailed(false);
+                      setErrors((prev) => ({ ...prev, tweetUrl: undefined }));
+                    }}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    <PenLine className="h-3.5 w-3.5" />
+                    Post deleted? Fill in manually instead
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -554,8 +585,22 @@ export function UploadArchiveForm({
         </div>
       </div>
 
+      {/* Manual mode banner */}
+      {manualMode && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-500/10 p-3 text-sm">
+          <PenLine className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="font-medium text-amber-800 dark:text-amber-300">Manual entry mode</p>
+            <p className="text-amber-700 dark:text-amber-400 mt-0.5">
+              The post couldn't be fetched automatically — it may have been deleted. Fill in the
+              details below from your own records or a screenshot.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Username is populated from the URL and shown only after metadata is fetched. */}
-      {metadataFetched && (
+      {(metadataFetched || manualMode) && (
         <div className="space-y-2">
           <Label htmlFor="username">Username</Label>
           <div className="flex gap-2">
@@ -566,11 +611,11 @@ export function UploadArchiveForm({
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
-                  if (metadataFetched) setMetadataFetched(false);
+                  if (metadataFetched && !manualMode) setMetadataFetched(false);
                   setTextTruncated(false);
                   setAllowManualEdit(false);
                 }}
-                disabled={metadataFetched}
+                disabled={metadataFetched && !manualMode}
                 className={`${errors.username ? "border-red-500 border-2" : ""}`}
               />
               {errors.username && (
@@ -584,7 +629,7 @@ export function UploadArchiveForm({
         </div>
       )}
 
-      {metadataFetched && (
+      {(metadataFetched || manualMode) && (
         <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
           {foundUser ? (
             <p>
@@ -592,12 +637,12 @@ export function UploadArchiveForm({
               archive(s)
             </p>
           ) : (
-            <p>New user — fill in their info below.</p>
+            <p>{manualMode ? "New entry — fill in the details below." : "New user — fill in their info below."}</p>
           )}
         </div>
       )}
 
-      {metadataFetched && !foundUser && (
+      {(metadataFetched || manualMode) && !foundUser && (
         <>
           <div className="space-y-2">
             <Label htmlFor="displayName">Display name</Label>
@@ -605,7 +650,8 @@ export function UploadArchiveForm({
               id="displayName"
               placeholder="Full name to display"
               value={displayName}
-              readOnly
+              readOnly={!manualMode}
+              onChange={(e) => manualMode && setDisplayName(e.target.value)}
               className={errors.displayName ? "border-red-500 border-2" : ""}
             />
             {errors.displayName && (
@@ -616,6 +662,7 @@ export function UploadArchiveForm({
             )}
           </div>
 
+          {/* Party affiliation field — commented out for now
           <div className="space-y-2">
             <Label htmlFor="party">Party affiliation (optional)</Label>
             <Input
@@ -632,6 +679,7 @@ export function UploadArchiveForm({
               </div>
             )}
           </div>
+          */}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (optional)</Label>
@@ -653,28 +701,31 @@ export function UploadArchiveForm({
         </>
       )}
 
-      {metadataFetched && (
+      {(metadataFetched || manualMode) && (
         <div className="rounded-xl border border-border bg-card p-2 shadow-[var(--shadow-soft)]">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-lg font-semibold">Statement</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {allowManualEdit
-                  ? "The statement text appears incomplete. You can edit it below."
-                  : "The statement text is populated from the tweet URL."}
+                {manualMode
+                  ? "Enter the statement details manually."
+                  : allowManualEdit
+                    ? "The statement text appears incomplete. You can edit it below."
+                    : "The statement text is populated from the tweet URL."}
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="url">Source URL</Label>
+              <Label htmlFor="url">Source URL {manualMode && <span className="text-muted-foreground font-normal">(optional)</span>}</Label>
               <Input
                 id="url"
                 type="url"
                 placeholder="https://twitter.com/..."
                 value={tweetUrl}
-                readOnly={metadataFetched}
+                readOnly={metadataFetched && !manualMode}
+                onChange={(e) => manualMode && setTweetUrl(e.target.value)}
                 className="mt-1.5"
               />
             </div>
@@ -701,7 +752,7 @@ export function UploadArchiveForm({
                 placeholder="Statement text"
                 value={tweetText}
                 onChange={(e) => setTweetText(e.target.value)}
-                readOnly={!allowManualEdit}
+                readOnly={!allowManualEdit && !manualMode}
                 className="mt-1.5"
               />
               {errors.tweetText && (
@@ -712,8 +763,9 @@ export function UploadArchiveForm({
               )}
             </div>
             {isFetchingScreenshot && (
-              <div className="rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
-                Fetching automatic screenshot please wait...
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                <span>Fetching automatic screenshot...</span>
               </div>
             )}
             {automaticScreenshotSrc && (
@@ -733,8 +785,8 @@ export function UploadArchiveForm({
                 type="datetime-local"
                 value={postedAt}
                 onChange={(e) => setPostedAt(e.target.value)}
-                readOnly={!!postedAt}
-                className="mt-1.5"
+                readOnly={!!postedAt && !manualMode}
+                className="mt-1.5 w-full max-w-full"
               />
             </div>
             <div>
@@ -786,12 +838,17 @@ export function UploadArchiveForm({
       )}
 
       <div className="flex flex-wrap gap-3">
-        {metadataFetched && (
-          <Button type="submit" size="lg" disabled={createArchiveMutation.isPending}>
+        {(metadataFetched || manualMode) && (
+          <Button type="submit" size="lg" disabled={createArchiveMutation.isPending || isFetchingScreenshot}>
             {createArchiveMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving…
+              </>
+            ) : isFetchingScreenshot ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Waiting for screenshot…
               </>
             ) : (
               submitLabel
