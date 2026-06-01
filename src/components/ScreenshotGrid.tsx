@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ScreenshotGridProps {
@@ -91,8 +92,9 @@ export function ScreenshotGrid({ images, onImageClick }: ScreenshotGridProps) {
         ))}
       </div>
 
-      {/* Lightbox modal */}
-      {lightboxIndex !== null && images[lightboxIndex] && (
+      {/* Lightbox modal — rendered via portal so fixed positioning isn't
+          clipped by ancestor overflow-hidden or CSS transforms on cards */}
+      {lightboxIndex !== null && images[lightboxIndex] && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 p-4 backdrop-blur-sm"
           onClick={() => setLightboxIndex(null)}
@@ -143,7 +145,8 @@ export function ScreenshotGrid({ images, onImageClick }: ScreenshotGridProps) {
             className="max-h-[90vh] max-w-full rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
