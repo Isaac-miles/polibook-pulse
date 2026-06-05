@@ -247,19 +247,78 @@ export async function captureScreenshot(url: string): Promise<{ url: string; pub
 }
 
 /**
- * Fetch basic tweet metadata using Twitter/X oEmbed publish endpoint.
- * Returns the raw oEmbed JSON which includes `author_name`, `author_url`, and `html`.
+ * Detect which platform a URL belongs to.
+ * Returns a platform key or 'unknown'.
+ */
+export type SocialPlatform = "twitter" | "tiktok" | "instagram" | "facebook" | "unknown";
+
+export function detectPlatform(urlString: string): SocialPlatform {
+  try {
+    const url = new URL(urlString);
+    const host = url.hostname.replace(/^www\./, "").toLowerCase();
+    if (host === "twitter.com" || host === "x.com") return "twitter";
+    if (host === "tiktok.com" || host === "vt.tiktok.com" || host === "vm.tiktok.com")
+      return "tiktok";
+    if (host === "instagram.com") return "instagram";
+    if (host === "facebook.com" || host === "fb.com" || host === "fb.watch") return "facebook";
+    return "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Extract the username/handle from a social media post URL.
+ * Returns an empty string if it can't be determined.
+ */
+export function extractUsernameFromUrl(urlString: string): string {
+  try {
+    const url = new URL(urlString);
+    const parts = url.pathname.split("/").filter(Boolean);
+    const platform = detectPlatform(urlString);
+
+    switch (platform) {
+      case "twitter":
+        // https://twitter.com/username/status/...
+        // https://x.com/username/status/...
+        return parts[0]?.replace("@", "") ?? "";
+
+      case "tiktok":
+        // https://www.tiktok.com/@username/video/...
+        // https://vt.tiktok.com/XXXXX/  (short link — no username in path)
+        if (parts[0]?.startsWith("@")) return parts[0].slice(1);
+        return "";
+
+      case "instagram":
+        // https://www.instagram.com/p/CODE/ (post — no username in path)
+        // https://www.instagram.com/username/ (profile)
+        if (parts[0] === "p" || parts[0] === "reel" || parts[0] === "tv") return "";
+        return parts[0] ?? "";
+
+      case "facebook":
+        // https://www.facebook.com/username/videos/...
+        // https://www.facebook.com/share/v/CODE/  (short share link)
+        if (parts[0] === "share") return "";
+        return parts[0] ?? "";
+
+      default:
+        return parts[0]?.replace("@", "") ?? "";
+    }
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Fetch post metadata from Twitter/X via oEmbed.
+ * Returns a normalised shape used by the upload form.
  */
 export async function fetchTweetMetadata(
   url: string,
 ): Promise<{ author_name?: string; author_url?: string; html?: string }> {
   const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`;
 
-  const res = await fetch(oembedUrl, {
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  const res = await fetch(oembedUrl, { headers: { Accept: "application/json" } });
 
   if (!res.ok) {
     throw new Error("Invalid source URL: tweet not found or metadata unavailable.");
@@ -271,6 +330,35 @@ export async function fetchTweetMetadata(
   }
 
   return data;
+}
+
+/**
+ * Unified metadata fetcher. Routes to the right provider based on platform.
+ * Returns a normalised { author_name, author_url, html } shape.
+ * Throws for unsupported platforms so the caller can offer manual entry.
+ */
+export async function fetchPostMetadata(
+  url: string,
+): Promise<{ author_name?: string; author_url?: string; html?: string; platform: SocialPlatform }> {
+  const platform = detectPlatform(url);
+
+  if (platform === "twitter") {
+    const data = await fetchTweetMetadata(url);
+    return { ...data, platform };
+  }
+
+  // TikTok, Instagram, Facebook — oEmbed is not CORS-accessible from the browser.
+  // Surface a clear per-platform message so the user knows to use manual entry.
+  const platformLabels: Record<string, string> = {
+    tiktok: "TikTok",
+    instagram: "Instagram",
+    facebook: "Facebook",
+  };
+
+  const label = platformLabels[platform] ?? "this platform";
+  throw new Error(
+    `Auto-fetch is not available for ${label} — the post may also have been deleted. Use "Fill in manually" to enter the details yourself.`,
+  );
 }
 
 export async function fetchTweetScreenshot(sourceUrl: string): Promise<string | null> {

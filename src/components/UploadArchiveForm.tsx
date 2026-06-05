@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchTweetMetadata, fetchTweetScreenshot } from "@/lib/api";
+import { fetchPostMetadata, fetchTweetScreenshot, extractUsernameFromUrl, detectPlatform } from "@/lib/api";
 import { useGetUser, useCreateArchive } from "@/hooks/useQueries";
 import {
   usernameSchema,
@@ -25,17 +25,6 @@ interface UploadArchiveFormProps {
 
 const MAX_SCREENSHOTS = 8;
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
-
-function extractUsernameFromTweetUrl(urlString: string) {
-  try {
-    const url = new URL(urlString);
-    const parts = url.pathname.split("/").filter(Boolean);
-    if (parts.length === 0) return "";
-    return parts[0].replace("@", "");
-  } catch {
-    return "";
-  }
-}
 
 function formatLocalDateTime(date: Date) {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -328,23 +317,43 @@ export function UploadArchiveForm({
       return;
     }
 
+    // For platforms that can't be auto-fetched, skip the network call and go
+    // straight to manual mode with a clear explanation.
+    const platform = detectPlatform(tweetUrl.trim());
+    if (platform === "tiktok" || platform === "instagram" || platform === "facebook") {
+      const labels: Record<string, string> = {
+        tiktok: "TikTok",
+        instagram: "Instagram",
+        facebook: "Facebook",
+      };
+      toast.info(`Auto-fetch isn't available for ${labels[platform]}. Fill in the details manually.`);
+      setManualMode(true);
+      setMetadataFetched(true);
+      setAllowManualEdit(true);
+      setErrors((prev) => ({ ...prev, tweetUrl: undefined }));
+      // Pre-fill username from URL where possible
+      const extractedUsername = extractUsernameFromUrl(tweetUrl.trim());
+      if (extractedUsername) setUsername(extractedUsername);
+      return;
+    }
+
     setIsFetchingUrl(true);
     try {
-      const data = await fetchTweetMetadata(tweetUrl.trim());
+      const data = await fetchPostMetadata(tweetUrl.trim());
       const fetchedUsername = data.author_url
         ? data.author_url.split("/").filter(Boolean).pop() || ""
-        : extractUsernameFromTweetUrl(tweetUrl.trim());
+        : extractUsernameFromUrl(tweetUrl.trim());
       const fetchedDisplayName = data.author_name || fetchedUsername || "";
       const parsedText = parseTweetTextFromHtml(data.html || "");
       const parsedPostedAt = parseTweetDateFromHtml(data.html || "");
 
       if (!fetchedUsername) {
-        toast.error("Invalid source URL: could not determine the tweet author.");
+        toast.error("Could not determine the author from this URL.");
         return;
       }
 
       if (!parsedText) {
-        toast.error("Invalid source URL: tweet text could not be extracted from metadata.");
+        toast.error("Could not extract the post text from this URL.");
         return;
       }
 
@@ -530,7 +539,7 @@ export function UploadArchiveForm({
             <Input
               id="sourceUrl"
               type="url"
-              placeholder={manualMode ? "Link to the post (optional — post may be deleted)" : "Link to the tweet (required)"}
+              placeholder={manualMode ? "Post URL (optional — post may be deleted)" : "Paste a link from X, TikTok, Instagram or Facebook"}
               value={tweetUrl}
               onChange={(e) => {
                 setTweetUrl(e.target.value);
@@ -542,6 +551,26 @@ export function UploadArchiveForm({
               autoFocus
               className={`${errors.tweetUrl ? "border-red-500 border-2" : ""}`}
             />
+            {/* Platform badge */}
+            {tweetUrl.trim() && !manualMode && (() => {
+              const platform = detectPlatform(tweetUrl.trim());
+              const badges: Record<string, { label: string; color: string }> = {
+                twitter:   { label: "X / Twitter", color: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300" },
+                tiktok:    { label: "TikTok", color: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300" },
+                instagram: { label: "Instagram", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+                facebook:  { label: "Facebook", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+              };
+              const badge = badges[platform];
+              if (!badge) return null;
+              return (
+                <span className={`mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}>
+                  {badge.label}
+                  {platform !== "twitter" && (
+                    <span className="ml-1 opacity-70">· manual entry required</span>
+                  )}
+                </span>
+              );
+            })()}
             {errors.tweetUrl && !manualMode && (
               <div className="mt-1 space-y-2">
                 <div className="flex items-center gap-1 text-sm text-red-600">
